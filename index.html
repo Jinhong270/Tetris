@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>俄罗斯方块(Made by Jinhong270)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="theme-green">
+    <div class="game-container">
+        <div class="game-header">
+            <h1>俄罗斯方块(Made by Jinhong270)</h1>
+        </div>
+        <div class="game-main">
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+            <div class="side-panel">
+                <div class="panel-box">
+                    <h3>下一个</h3>
+                    <canvas id="nextCanvas"></canvas>
+                </div>
+                <div class="panel-box">
+                    <h3>分数</h3>
+                    <p id="scoreDisplay">0</p>
+                </div>
+                <div class="panel-box">
+                    <h3>等级</h3>
+                    <p id="levelDisplay">1</p>
+                </div>
+                <div class="panel-box">
+                    <h3>消除行</h3>
+                    <p id="linesDisplay">0</p>
+                </div>
+                <div class="panel-box" id="themePicker">
+                    <h3>背景色</h3>
+                    <div class="color-swatches">
+                        <div class="swatch" data-theme="green" style="background:#9bbc0f;"></div>
+                        <div class="swatch" data-theme="gray" style="background:#9e9e9e;"></div>
+                        <div class="swatch" data-theme="wheat" style="background:#d2b48c;"></div>
+                        <div class="swatch" data-theme="blue" style="background:#7aa2b5;"></div>
+                    </div>
+                </div>
+                <button id="startButton">开始游戏</button>
+            </div>
+        </div>
+        <div class="touch-controls" id="touchControls">
+            <div class="control-row">
+                <button id="btnLeft" class="ctrl-btn">◀</button>
+                <button id="btnRotate" class="ctrl-btn">↻</button>
+                <button id="btnRight" class="ctrl-btn">▶</button>
+            </div>
+            <div class="control-row">
+                <button id="btnDown" class="ctrl-btn">▼</button>
+                <button id="btnDrop" class="ctrl-btn">▼▼</button>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
