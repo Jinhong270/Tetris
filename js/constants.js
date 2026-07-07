@@ -3,6 +3,16 @@ export const ROWS = 20;
 export const CELL_SIZE = 30;
 export const PREVIEW_CELL_SIZE = 22;
 
+export const SPEED_LEVELS = {
+    slow: { drop: 1200, label: '慢' },
+    normal: { drop: 1000, label: '标准' },
+    fast: { drop: 700, label: '快' },
+    veryFast: { drop: 400, label: '非常快' },
+    insane: { drop: 150, label: '疯狂' }
+};
+
+export const DEFAULT_SPEED = 'normal';
+
 export const COLORS = {
     I: '#00e5ff',
     O: '#ffeb3b',
@@ -59,3 +69,4 @@ export const SHAPES = {
 };
 
 export const PIECE_TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+export const SCORE_MAP = [0, 40, 100, 300, 1200];

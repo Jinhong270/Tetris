@@ -1,8 +1,6 @@
 import { Board } from './board.js';
 import { Piece } from './piece.js';
-import { PIECE_TYPES, COLS, ROWS } from './constants.js';
-
-const SCORE_MAP = [0, 100, 300, 500, 800];
+import { PIECE_TYPES, COLS, ROWS, SPEED_LEVELS, DEFAULT_SPEED, SCORE_MAP } from './constants.js';
 
 export class Game {
     constructor() {
@@ -13,9 +11,12 @@ export class Game {
         this.level = 1;
         this.lines = 0;
         this.state = 'idle';
-        this.dropInterval = 1000;
         this.lastDropTime = 0;
         this.softDropActive = false;
+        this.speedLevel = DEFAULT_SPEED;
+        this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
+        this.highScore = 0;
+        this.loadHighScore();
     }
 
     randomPiece() {
@@ -23,17 +24,53 @@ export class Game {
         return new Piece(type);
     }
 
+    setSpeedLevel(level) {
+        if (SPEED_LEVELS[level]) {
+            this.speedLevel = level;
+            this.dropInterval = SPEED_LEVELS[level].drop;
+            localStorage.setItem('tetrisSpeed', level);
+        }
+    }
+
+    loadSpeedLevel() {
+        const saved = localStorage.getItem('tetrisSpeed');
+        if (saved && SPEED_LEVELS[saved]) {
+            this.setSpeedLevel(saved);
+        }
+    }
+
+    loadHighScore() {
+        const saved = localStorage.getItem('tetrisHighScore');
+        this.highScore = saved ? parseInt(saved, 10) : 0;
+    }
+
+    saveHighScore() {
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('tetrisHighScore', this.highScore);
+        }
+    }
+
     start() {
         this.board.reset();
         this.score = 0;
         this.level = 1;
         this.lines = 0;
-        this.dropInterval = 1000;
         this.lastDropTime = 0;
         this.softDropActive = false;
+        this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
         this.nextPiece = this.randomPiece();
         this.spawnPiece();
         this.state = 'playing';
+    }
+
+    togglePause() {
+        if (this.state === 'playing') {
+            this.state = 'paused';
+        } else if (this.state === 'paused') {
+            this.state = 'playing';
+            this.lastDropTime = performance.now();
+        }
     }
 
     spawnPiece() {
@@ -53,6 +90,8 @@ export class Game {
         if (this.board.isGameOver(matrix, x, y)) {
             this.state = 'gameover';
             this.currentPiece = null;
+            this.saveHighScore();
+            if (window.playGameOverSound) window.playGameOverSound();
         }
     }
 
@@ -141,7 +180,8 @@ export class Game {
             this.lines += cleared;
             this.score += SCORE_MAP[cleared] * this.level;
             this.level = Math.floor(this.lines / 10) + 1;
-            this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 80);
+            this.dropInterval = Math.max(100, SPEED_LEVELS[this.speedLevel].drop - (this.level - 1) * 50);
+            if (window.playClearSound) window.playClearSound(cleared);
         }
         this.spawnPiece();
         this.softDropActive = false;

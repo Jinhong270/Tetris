@@ -17,20 +17,31 @@ export class InputHandler {
     handleKeyDown(e) {
         if (this.game.state !== 'playing') return;
         switch (e.code) {
-            case 'ArrowLeft': e.preventDefault(); this.game.moveLeft(); break;
-            case 'ArrowRight': e.preventDefault(); this.game.moveRight(); break;
+            case 'ArrowLeft': 
+                e.preventDefault(); 
+                this.game.moveLeft(); 
+                if (window.playMoveSound) window.playMoveSound();
+                break;
+            case 'ArrowRight': 
+                e.preventDefault(); 
+                this.game.moveRight(); 
+                if (window.playMoveSound) window.playMoveSound();
+                break;
             case 'ArrowDown':
                 e.preventDefault();
                 if (!e.repeat) this.game.setSoftDrop(true);
                 this.game.softDrop();
+                if (window.playMoveSound) window.playMoveSound();
                 break;
             case 'ArrowUp':
                 e.preventDefault();
                 if (!e.repeat) this.game.rotate();
+                if (window.playRotateSound) window.playRotateSound();
                 break;
             case 'Space':
                 e.preventDefault();
                 if (!e.repeat) this.game.hardDrop();
+                if (window.playDropSound) window.playDropSound();
                 break;
         }
     }
@@ -64,56 +75,49 @@ export class InputHandler {
             }, 50);
         };
 
-        left.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startRepeat(() => this.game.moveLeft());
-        });
-        left.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.stopRepeat();
-        });
-        left.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            this.stopRepeat();
-        });
+        const bindButton = (element, startAction, endAction) => {
+            element.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startAction();
+            });
+            element.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                endAction();
+            });
+            element.addEventListener('touchcancel', (e) => {
+                e.preventDefault();
+                endAction();
+            });
+        };
 
-        right.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            startRepeat(() => this.game.moveRight());
-        });
-        right.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.stopRepeat();
-        });
-        right.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            this.stopRepeat();
-        });
-
-        down.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            this.game.setSoftDrop(true);
-            startRepeat(() => this.game.softDrop());
-        });
-        down.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.game.setSoftDrop(false);
-            this.stopRepeat();
-        });
-        down.addEventListener('touchcancel', (e) => {
-            e.preventDefault();
-            this.game.setSoftDrop(false);
-            this.stopRepeat();
-        });
+        bindButton(left, () => startRepeat(() => { this.game.moveLeft(); if (window.playMoveSound) window.playMoveSound(); }), () => this.stopRepeat());
+        bindButton(right, () => startRepeat(() => { this.game.moveRight(); if (window.playMoveSound) window.playMoveSound(); }), () => this.stopRepeat());
+        
+        bindButton(down, 
+            () => {
+                this.game.setSoftDrop(true);
+                startRepeat(() => { this.game.softDrop(); if (window.playMoveSound) window.playMoveSound(); });
+            },
+            () => {
+                this.game.setSoftDrop(false);
+                this.stopRepeat();
+            }
+        );
 
         rotateBtn.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (this.game.state === 'playing') this.game.rotate();
+            if (this.game.state === 'playing') {
+                this.game.rotate();
+                if (window.playRotateSound) window.playRotateSound();
+            }
         });
 
         drop.addEventListener('touchstart', (e) => {
             e.preventDefault();
-            if (this.game.state === 'playing') this.game.hardDrop();
+            if (this.game.state === 'playing') {
+                this.game.hardDrop();
+                if (window.playDropSound) window.playDropSound();
+            }
         });
     }
 }

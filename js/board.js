@@ -6,11 +6,7 @@ export class Board {
     }
 
     reset() {
-        for (let row = 0; row < ROWS; row++) {
-            for (let col = 0; col < COLS; col++) {
-                this.grid[row][col] = 0;
-            }
-        }
+        this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     }
 
     isValidPosition(matrix, x, y) {

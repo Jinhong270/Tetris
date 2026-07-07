@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>俄罗斯方块(Made by Jinhong270)</title>
+    <title>俄罗斯方块</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="theme-green">
+<body class="theme-gray">
     <div class="game-container">
         <div class="game-header">
-            <h1>俄罗斯方块(Made by Jinhong270)</h1>
+            <h1>俄罗斯方块</h1>
         </div>
         <div class="game-main">
             <div class="canvas-wrapper">
@@ -33,16 +33,34 @@
                     <h3>消除行</h3>
                     <p id="linesDisplay">0</p>
                 </div>
+                <div class="panel-box">
+                    <h3>最高分</h3>
+                    <p id="highScoreDisplay">0</p>
+                </div>
+                <div class="panel-box">
+                    <h3>速度</h3>
+                    <p id="speedDisplay">标准</p>
+                    <div class="speed-controls">
+                        <button class="speed-btn" data-speed="slow">慢</button>
+                        <button class="speed-btn" data-speed="normal">标准</button>
+                        <button class="speed-btn" data-speed="fast">快</button>
+                        <button class="speed-btn" data-speed="veryFast">超快</button>
+                        <button class="speed-btn" data-speed="insane">疯狂</button>
+                    </div>
+                </div>
                 <div class="panel-box" id="themePicker">
-                    <h3>背景色</h3>
+                    <h3>主题</h3>
                     <div class="color-swatches">
-                        <div class="swatch" data-theme="green" style="background:#9bbc0f;"></div>
-                        <div class="swatch" data-theme="gray" style="background:#9e9e9e;"></div>
-                        <div class="swatch" data-theme="wheat" style="background:#d2b48c;"></div>
-                        <div class="swatch" data-theme="blue" style="background:#7aa2b5;"></div>
+                        <div class="swatch" data-theme="gray" style="background:linear-gradient(135deg, #667eea, #764ba2);"></div>
+                        <div class="swatch" data-theme="green" style="background:linear-gradient(135deg, #11998e, #38ef7d);"></div>
+                        <div class="swatch" data-theme="blue" style="background:linear-gradient(135deg, #4facfe, #00f2fe);"></div>
+                        <div class="swatch" data-theme="wheat" style="background:linear-gradient(135deg, #f093fb, #f5576c);"></div>
+                        <div class="swatch" data-theme="dark" style="background:linear-gradient(135deg, #1a1a2e, #16213e);"></div>
+                        <div class="swatch" data-theme="arcade" style="background:linear-gradient(135deg, #ff416c, #ff4b2b);"></div>
                     </div>
                 </div>
                 <button id="startButton">开始游戏</button>
+                <button id="pauseButton" style="display: none; margin-top: 8px;">暂停</button>
             </div>
         </div>
         <div class="touch-controls" id="touchControls">
@@ -55,6 +73,9 @@
                 <button id="btnDown" class="ctrl-btn">▼</button>
                 <button id="btnDrop" class="ctrl-btn">▼▼</button>
             </div>
+        </div>
+        <div class="controls-hint">
+            <small>键盘: ← → ↓ ↑ 空格 | P 暂停/继续 | 手机: 按钮操作</small>
         </div>
     </div>
     <script type="module" src="js/main.js"></script>
