@@ -106,7 +106,7 @@ export class Renderer {
         }
         this.drawNext(game.nextPiece);
         this.updateStats(game);
-        if (game.state === 'gameover') this.drawOverlay('游戏结束', '点击重新开始');
+        if (game.state === 'gameover') this.drawOverlay('游戏结束', '点击返回标题');
         else if (game.state === 'idle') this.drawOverlay('TETRIS', '点击开始游戏');
         else if (game.state === 'paused') this.drawOverlay('已暂停', '点击继续');
     }

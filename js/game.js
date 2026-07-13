@@ -110,6 +110,19 @@ export class Game {
         this.spawnPiece();
     }
 
+    returnToIdle() {
+        this.board.reset();
+        this.currentPiece = null;
+        this.nextPiece = null;
+        this.currentX = 0;
+        this.currentY = 0;
+        this.softDropActive = false;
+        this.lastDropTime = 0;
+        this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
+        this.loadHighScore();
+        this.state = 'idle';
+    }
+
     pause() {
         if (this.state === 'playing') {
             this.state = 'paused';

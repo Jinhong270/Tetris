@@ -141,8 +141,33 @@ function startGame() {
     renderer.render(game);
 }
 
+function returnToTitle() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    game.returnToIdle();
+    if (startButton) startButton.textContent = '开始游戏';
+    updatePauseButton();
+    updateHighScoreDisplay();
+    renderer.render(game);
+    playSound(330, 100, 'square', 0.2);
+}
+
+function handleStartButton() {
+    if (game.state === 'gameover') {
+        returnToTitle();
+        return;
+    }
+    startGame();
+}
+
 function handleCanvasClick() {
-    if (game.state === 'idle' || game.state === 'gameover') {
+    if (game.state === 'gameover') {
+        returnToTitle();
+        return;
+    }
+    if (game.state === 'idle') {
         startGame();
         return;
     }
@@ -216,7 +241,7 @@ window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 if (startButton) {
-    startButton.addEventListener('click', startGame);
+    startButton.addEventListener('click', handleStartButton);
 }
 
 if (pauseButton) {
