@@ -21,12 +21,4 @@ export class Piece {
         this.rotation = (this.rotation + 1) % 4;
         this.matrix = SHAPES[this.type][this.rotation];
     }
-
-    clone() {
-        const cloned = new Piece(this.type);
-        cloned.rotation = this.rotation;
-        cloned.matrix = this.matrix;
-        cloned.color = this.color;
-        return cloned;
-    }
 }

@@ -2,7 +2,7 @@ import { COLS, ROWS } from './constants.js';
 
 export class Board {
     constructor() {
-        this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+        this.reset();
     }
 
     reset() {

@@ -1,12 +1,14 @@
 import { Board } from './board.js';
 import { Piece } from './piece.js';
-import { PIECE_TYPES, COLS, ROWS, SPEED_LEVELS, DEFAULT_SPEED, SCORE_MAP } from './constants.js';
+import { PIECE_TYPES, COLS, SPEED_LEVELS, DEFAULT_SPEED, SCORE_MAP } from './constants.js';
 
 export class Game {
     constructor() {
         this.board = new Board();
         this.currentPiece = null;
         this.nextPiece = null;
+        this.currentX = 0;
+        this.currentY = 0;
         this.score = 0;
         this.level = 1;
         this.lines = 0;
@@ -19,23 +21,33 @@ export class Game {
         this.loadHighScore();
     }
 
+    isActive() {
+        return this.state === 'playing' || this.state === 'paused';
+    }
+
+    canChangeSpeed() {
+        return this.state === 'idle' || this.state === 'gameover';
+    }
+
     randomPiece() {
         const type = PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
         return new Piece(type);
     }
 
     setSpeedLevel(level) {
-        if (SPEED_LEVELS[level]) {
-            this.speedLevel = level;
-            this.dropInterval = SPEED_LEVELS[level].drop;
-            localStorage.setItem('tetrisSpeed', level);
-        }
+        if (!SPEED_LEVELS[level]) return false;
+        if (!this.canChangeSpeed()) return false;
+        this.speedLevel = level;
+        this.dropInterval = SPEED_LEVELS[level].drop;
+        localStorage.setItem('tetrisSpeed', level);
+        return true;
     }
 
     loadSpeedLevel() {
         const saved = localStorage.getItem('tetrisSpeed');
         if (saved && SPEED_LEVELS[saved]) {
-            this.setSpeedLevel(saved);
+            this.speedLevel = saved;
+            this.dropInterval = SPEED_LEVELS[saved].drop;
         }
     }
 
@@ -47,7 +59,7 @@ export class Game {
     saveHighScore() {
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('tetrisHighScore', this.highScore);
+            localStorage.setItem('tetrisHighScore', String(this.highScore));
         }
     }
 
@@ -56,21 +68,42 @@ export class Game {
         this.score = 0;
         this.level = 1;
         this.lines = 0;
-        this.lastDropTime = 0;
+        this.lastDropTime = performance.now();
         this.softDropActive = false;
         this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
         this.nextPiece = this.randomPiece();
-        this.spawnPiece();
         this.state = 'playing';
+        this.spawnPiece();
+    }
+
+    pause() {
+        if (this.state === 'playing') {
+            this.state = 'paused';
+            return true;
+        }
+        return false;
+    }
+
+    resume() {
+        if (this.state === 'paused') {
+            this.state = 'playing';
+            this.lastDropTime = performance.now();
+            return true;
+        }
+        return false;
     }
 
     togglePause() {
         if (this.state === 'playing') {
             this.state = 'paused';
-        } else if (this.state === 'paused') {
+            return 'paused';
+        }
+        if (this.state === 'paused') {
             this.state = 'playing';
             this.lastDropTime = performance.now();
+            return 'playing';
         }
+        return this.state;
     }
 
     spawnPiece() {
@@ -96,41 +129,38 @@ export class Game {
     }
 
     moveLeft() {
-        if (this.state !== 'playing' || !this.currentPiece) return;
+        if (this.state !== 'playing' || !this.currentPiece) return false;
         const newX = this.currentX - 1;
         if (this.board.isValidPosition(this.currentPiece.getMatrix(), newX, this.currentY)) {
             this.currentX = newX;
+            return true;
         }
+        return false;
     }
 
     moveRight() {
-        if (this.state !== 'playing' || !this.currentPiece) return;
+        if (this.state !== 'playing' || !this.currentPiece) return false;
         const newX = this.currentX + 1;
         if (this.board.isValidPosition(this.currentPiece.getMatrix(), newX, this.currentY)) {
             this.currentX = newX;
+            return true;
         }
+        return false;
     }
 
     rotate() {
-        if (this.state !== 'playing' || !this.currentPiece) return;
+        if (this.state !== 'playing' || !this.currentPiece) return false;
         const rotatedMatrix = this.currentPiece.getRotatedMatrix();
-        let testX = this.currentX;
-        if (this.board.isValidPosition(rotatedMatrix, testX, this.currentY)) {
-            this.currentPiece.applyRotation();
-            this.currentX = testX;
-            return;
+        const kicks = [0, -1, 1, -2, 2];
+        for (const kick of kicks) {
+            const testX = this.currentX + kick;
+            if (this.board.isValidPosition(rotatedMatrix, testX, this.currentY)) {
+                this.currentPiece.applyRotation();
+                this.currentX = testX;
+                return true;
+            }
         }
-        testX = this.currentX - 1;
-        if (this.board.isValidPosition(rotatedMatrix, testX, this.currentY)) {
-            this.currentPiece.applyRotation();
-            this.currentX = testX;
-            return;
-        }
-        testX = this.currentX + 1;
-        if (this.board.isValidPosition(rotatedMatrix, testX, this.currentY)) {
-            this.currentPiece.applyRotation();
-            this.currentX = testX;
-        }
+        return false;
     }
 
     moveDown() {
@@ -164,7 +194,9 @@ export class Game {
 
     update(timestamp) {
         if (this.state !== 'playing' || !this.currentPiece) return;
-        const effectiveInterval = this.softDropActive ? Math.max(50, this.dropInterval / 20) : this.dropInterval;
+        const effectiveInterval = this.softDropActive
+            ? Math.max(50, this.dropInterval / 20)
+            : this.dropInterval;
         if (timestamp - this.lastDropTime >= effectiveInterval) {
             const moved = this.moveDown();
             if (!moved) this.lockCurrent();
@@ -174,13 +206,21 @@ export class Game {
 
     lockCurrent() {
         if (!this.currentPiece) return;
-        this.board.lockPiece(this.currentPiece.getMatrix(), this.currentX, this.currentY, this.currentPiece.color);
+        this.board.lockPiece(
+            this.currentPiece.getMatrix(),
+            this.currentX,
+            this.currentY,
+            this.currentPiece.color
+        );
         const cleared = this.board.clearLines();
         if (cleared > 0) {
             this.lines += cleared;
             this.score += SCORE_MAP[cleared] * this.level;
             this.level = Math.floor(this.lines / 10) + 1;
-            this.dropInterval = Math.max(100, SPEED_LEVELS[this.speedLevel].drop - (this.level - 1) * 50);
+            this.dropInterval = Math.max(
+                80,
+                SPEED_LEVELS[this.speedLevel].drop - (this.level - 1) * 50
+            );
             if (window.playClearSound) window.playClearSound(cleared);
         }
         this.spawnPiece();
@@ -190,7 +230,9 @@ export class Game {
     getGhostY() {
         if (!this.currentPiece) return this.currentY;
         let ghostY = this.currentY;
-        while (this.board.isValidPosition(this.currentPiece.getMatrix(), this.currentX, ghostY + 1)) ghostY++;
+        while (this.board.isValidPosition(this.currentPiece.getMatrix(), this.currentX, ghostY + 1)) {
+            ghostY++;
+        }
         return ghostY;
     }
 

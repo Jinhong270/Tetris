@@ -1,9 +1,12 @@
 import { Game } from './game.js';
 import { Renderer } from './renderer.js';
 import { InputHandler } from './input.js';
-import { COLS, ROWS, CELL_SIZE, SPEED_LEVELS } from './constants.js';
+import { COLS, ROWS, CELL_SIZE } from './constants.js';
 
-let audioCtx;
+let audioCtx = null;
+let animationId = null;
+let toastTimer = null;
+
 function getAudioContext() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -18,39 +21,32 @@ function playSound(frequency, duration = 80, type = 'square', volume = 0.3) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         const filter = ctx.createBiquadFilter();
-        
         osc.type = type;
         osc.frequency.value = frequency;
-        
         filter.type = 'lowpass';
         filter.frequency.value = 1200;
-        
-        gain.gain.value = volume;
-        
         const now = ctx.currentTime;
         gain.gain.setValueAtTime(volume, now);
         gain.gain.linearRampToValueAtTime(0.001, now + duration / 1000);
-        
         osc.connect(filter);
         filter.connect(gain);
         gain.connect(ctx.destination);
-        
         osc.start(now);
         osc.stop(now + duration / 1000 + 0.05);
-    } catch (e) {
+    } catch (_) {
     }
 }
 
 function playMoveSound() { playSound(440, 40, 'square', 0.15); }
 function playRotateSound() { playSound(660, 60, 'sawtooth', 0.2); }
 function playDropSound() { playSound(880, 100, 'square', 0.25); }
-function playClearSound(lines) { 
-    playSound(523, 120, 'square', 0.3); 
+function playClearSound(lines) {
+    playSound(523, 120, 'square', 0.3);
     setTimeout(() => playSound(659, 120, 'square', 0.3), 80);
     if (lines >= 4) setTimeout(() => playSound(784, 200, 'square', 0.35), 160);
 }
-function playGameOverSound() { 
-    playSound(200, 300, 'sawtooth', 0.4); 
+function playGameOverSound() {
+    playSound(200, 300, 'sawtooth', 0.4);
     setTimeout(() => playSound(150, 400, 'sawtooth', 0.3), 200);
 }
 
@@ -65,122 +61,176 @@ const nextCanvas = document.getElementById('nextCanvas');
 const startButton = document.getElementById('startButton');
 const pauseButton = document.getElementById('pauseButton');
 const highScoreDisplay = document.getElementById('highScoreDisplay');
+const toastEl = document.getElementById('toast');
 const body = document.body;
 
-const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+function detectTouchSupport() {
+    return (
+        'ontouchstart' in window ||
+        (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+        (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    );
+}
+
+const isTouchDevice = detectTouchSupport();
 if (isTouchDevice) {
     body.classList.add('touch-device');
+    const touchControls = document.getElementById('touchControls');
+    if (touchControls) touchControls.setAttribute('aria-hidden', 'false');
 }
 
 const game = new Game();
 game.loadSpeedLevel();
 const renderer = new Renderer(gameCanvas, nextCanvas);
-const input = new InputHandler(game, isTouchDevice);
 
-document.addEventListener('keydown', (e) => {
-    if (e.code === 'KeyP' || e.code === 'Escape') {
-        e.preventDefault();
-        if (game.state === 'playing' || game.state === 'paused') {
-            game.togglePause();
-            if (pauseButton) {
-                pauseButton.textContent = game.state === 'paused' ? '继续' : '暂停';
-            }
-            if (game.state === 'paused') {
-                if (animationId) cancelAnimationFrame(animationId);
-                renderer.render(game);
-            } else if (game.state === 'playing') {
-                animationId = requestAnimationFrame(gameLoop);
-            }
-        }
+function showToast(message, duration = 2800) {
+    if (!toastEl) return;
+    toastEl.textContent = message;
+    toastEl.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        toastEl.classList.remove('show');
+    }, duration);
+}
+
+function updatePauseButton() {
+    if (!pauseButton) return;
+    if (game.isActive()) {
+        pauseButton.classList.remove('hidden');
+        pauseButton.textContent = game.state === 'paused' ? '继续' : '暂停';
+    } else {
+        pauseButton.classList.add('hidden');
     }
-});
+}
 
-let animationId = null;
+function syncPauseUI() {
+    updatePauseButton();
+    renderer.render(game);
+}
+
+function handlePauseToggle() {
+    if (!game.isActive()) return;
+    const next = game.togglePause();
+    playSound(next === 'paused' ? 400 : 600, 60, 'square', 0.25);
+    if (next === 'paused') {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        syncPauseUI();
+    } else {
+        syncPauseUI();
+        if (!animationId) animationId = requestAnimationFrame(gameLoop);
+    }
+}
+
+const input = new InputHandler(game, isTouchDevice, handlePauseToggle);
 
 function gameLoop(timestamp) {
     if (game.state === 'paused') {
         renderer.render(game);
-        animationId = requestAnimationFrame(gameLoop);
+        animationId = null;
         return;
     }
     game.update(timestamp);
     renderer.render(game);
     if (game.state === 'gameover') {
         updateHighScoreDisplay();
+        updatePauseButton();
+        animationId = null;
+        return;
     }
     animationId = requestAnimationFrame(gameLoop);
 }
 
 function resizeCanvas() {
-    const maxWidth = Math.min(300, window.innerWidth * 0.9, window.innerHeight * 0.45);
+    const maxWidth = Math.min(300, window.innerWidth * 0.92, window.innerHeight * 0.48);
     const scale = maxWidth / (COLS * CELL_SIZE);
-    gameCanvas.style.width = (COLS * CELL_SIZE * scale) + 'px';
-    gameCanvas.style.height = (ROWS * CELL_SIZE * scale) + 'px';
+    gameCanvas.style.width = `${COLS * CELL_SIZE * scale}px`;
+    gameCanvas.style.height = `${ROWS * CELL_SIZE * scale}px`;
+}
+
+function updateHighScoreDisplay() {
+    if (highScoreDisplay) {
+        highScoreDisplay.textContent = String(game.highScore || 0);
+    }
+}
+
+function applyTheme(theme) {
+    body.className = body.className.replace(/theme-\w+/g, '').trim();
+    body.classList.add(`theme-${theme}`);
+    if (isTouchDevice) body.classList.add('touch-device');
+    localStorage.setItem('tetrisTheme', theme);
+}
+
+function loadTheme() {
+    const saved = localStorage.getItem('tetrisTheme');
+    if (saved) applyTheme(saved);
 }
 
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
 startButton.addEventListener('click', () => {
-    if (animationId) cancelAnimationFrame(animationId);
-    if (game.state === 'gameover' || game.state === 'idle') {
-        game.start();
-        pauseButton.style.display = 'block';
-        pauseButton.textContent = '暂停';
-        startButton.textContent = '重新开始';
-        playSound(880, 150, 'square', 0.4);
-    } else {
-        game.start();
-        playSound(660, 80, 'square', 0.3);
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
     }
-    animationId = requestAnimationFrame(gameLoop);
+    game.start();
+    if (game.state === 'playing') {
+        startButton.textContent = '重新开始';
+        updatePauseButton();
+        playSound(880, 150, 'square', 0.35);
+        animationId = requestAnimationFrame(gameLoop);
+    }
     updateHighScoreDisplay();
+    renderer.render(game);
 });
 
-pauseButton.addEventListener('click', () => {
-    if (game.state === 'playing' || game.state === 'paused') {
-        game.togglePause();
-        pauseButton.textContent = game.state === 'paused' ? '继续' : '暂停';
-        playSound(game.state === 'paused' ? 400 : 600, 60, 'square', 0.25);
-        if (game.state === 'paused') {
-            if (animationId) cancelAnimationFrame(animationId);
-            renderer.render(game);
-        } else {
-            animationId = requestAnimationFrame(gameLoop);
-        }
-    }
-});
+if (pauseButton) {
+    pauseButton.addEventListener('click', handlePauseToggle);
+}
 
 document.querySelectorAll('.swatch').forEach(swatch => {
     swatch.addEventListener('click', (e) => {
-        const theme = e.target.dataset.theme;
-        body.className = body.className.replace(/theme-\w+/g, '');
-        body.classList.add(`theme-${theme}`);
-        if (isTouchDevice) body.classList.add('touch-device');
+        const theme = e.currentTarget.dataset.theme;
+        if (theme) applyTheme(theme);
     });
 });
 
 const speedButtons = document.querySelectorAll('.speed-btn');
 speedButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const level = e.target.dataset.speed;
-        game.setSpeedLevel(level);
-        
-        speedButtons.forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        renderer.render(game);
+        const level = e.currentTarget.dataset.speed;
+        if (!level) return;
+
+        if (!game.canChangeSpeed()) {
+            if (game.state === 'playing') {
+                game.pause();
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                    animationId = null;
+                }
+                syncPauseUI();
+            }
+            showToast('游戏进行中无法调节速度，请等待本局结束后再试。游戏已暂停。');
+            playSound(220, 120, 'square', 0.25);
+            return;
+        }
+
+        if (game.setSpeedLevel(level)) {
+            speedButtons.forEach(b => b.classList.remove('active'));
+            e.currentTarget.classList.add('active');
+            renderer.render(game);
+            playSound(520, 50, 'square', 0.15);
+        }
     });
 });
 
 const initialSpeedBtn = document.querySelector(`[data-speed="${game.speedLevel}"]`);
 if (initialSpeedBtn) initialSpeedBtn.classList.add('active');
 
-function updateHighScoreDisplay() {
-    if (highScoreDisplay) {
-        highScoreDisplay.textContent = game.highScore || 0;
-    }
-}
-
+loadTheme();
 updateHighScoreDisplay();
+updatePauseButton();
 renderer.render(game);

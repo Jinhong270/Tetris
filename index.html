@@ -2,82 +2,91 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>俄罗斯方块</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>俄罗斯方块 (Made by Jinhong270)</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="theme-gray">
+<body class="theme-classic">
     <div class="game-container">
-        <div class="game-header">
-            <h1>俄罗斯方块</h1>
-        </div>
+        <header class="game-header">
+            <h1>TETRIS</h1>
+            <p class="subtitle">经典俄罗斯方块</p>
+        </header>
         <div class="game-main">
             <div class="canvas-wrapper">
                 <canvas id="gameCanvas"></canvas>
             </div>
-            <div class="side-panel">
+            <aside class="side-panel">
                 <div class="panel-box">
                     <h3>下一个</h3>
                     <canvas id="nextCanvas"></canvas>
                 </div>
-                <div class="panel-box">
-                    <h3>分数</h3>
-                    <p id="scoreDisplay">0</p>
-                </div>
-                <div class="panel-box">
-                    <h3>等级</h3>
-                    <p id="levelDisplay">1</p>
-                </div>
-                <div class="panel-box">
-                    <h3>消除行</h3>
-                    <p id="linesDisplay">0</p>
-                </div>
-                <div class="panel-box">
-                    <h3>最高分</h3>
-                    <p id="highScoreDisplay">0</p>
+                <div class="stats-grid">
+                    <div class="panel-box">
+                        <h3>分数</h3>
+                        <p id="scoreDisplay">0</p>
+                    </div>
+                    <div class="panel-box">
+                        <h3>等级</h3>
+                        <p id="levelDisplay">1</p>
+                    </div>
+                    <div class="panel-box">
+                        <h3>消除</h3>
+                        <p id="linesDisplay">0</p>
+                    </div>
+                    <div class="panel-box">
+                        <h3>最高分</h3>
+                        <p id="highScoreDisplay">0</p>
+                    </div>
                 </div>
                 <div class="panel-box">
                     <h3>速度</h3>
                     <p id="speedDisplay">标准</p>
                     <div class="speed-controls">
-                        <button class="speed-btn" data-speed="slow">慢</button>
-                        <button class="speed-btn" data-speed="normal">标准</button>
-                        <button class="speed-btn" data-speed="fast">快</button>
-                        <button class="speed-btn" data-speed="veryFast">超快</button>
-                        <button class="speed-btn" data-speed="insane">疯狂</button>
+                        <button type="button" class="speed-btn" data-speed="slow">慢</button>
+                        <button type="button" class="speed-btn" data-speed="normal">标准</button>
+                        <button type="button" class="speed-btn" data-speed="fast">快</button>
+                        <button type="button" class="speed-btn" data-speed="veryFast">超快</button>
+                        <button type="button" class="speed-btn" data-speed="insane">疯狂</button>
                     </div>
                 </div>
                 <div class="panel-box" id="themePicker">
                     <h3>主题</h3>
                     <div class="color-swatches">
-                        <div class="swatch" data-theme="gray" style="background:linear-gradient(135deg, #667eea, #764ba2);"></div>
-                        <div class="swatch" data-theme="green" style="background:linear-gradient(135deg, #11998e, #38ef7d);"></div>
-                        <div class="swatch" data-theme="blue" style="background:linear-gradient(135deg, #4facfe, #00f2fe);"></div>
-                        <div class="swatch" data-theme="wheat" style="background:linear-gradient(135deg, #f093fb, #f5576c);"></div>
-                        <div class="swatch" data-theme="dark" style="background:linear-gradient(135deg, #1a1a2e, #16213e);"></div>
-                        <div class="swatch" data-theme="arcade" style="background:linear-gradient(135deg, #ff416c, #ff4b2b);"></div>
+                        <div class="swatch" data-theme="classic" style="background:linear-gradient(135deg,#1a1a2e,#16213e);" title="经典"></div>
+                        <div class="swatch" data-theme="gray" style="background:linear-gradient(135deg,#667eea,#764ba2);" title="紫"></div>
+                        <div class="swatch" data-theme="green" style="background:linear-gradient(135deg,#11998e,#38ef7d);" title="绿"></div>
+                        <div class="swatch" data-theme="blue" style="background:linear-gradient(135deg,#4facfe,#00f2fe);" title="蓝"></div>
+                        <div class="swatch" data-theme="wheat" style="background:linear-gradient(135deg,#f093fb,#f5576c);" title="粉"></div>
+                        <div class="swatch" data-theme="arcade" style="background:linear-gradient(135deg,#ff416c,#ff4b2b);" title="街机"></div>
                     </div>
                 </div>
-                <button id="startButton">开始游戏</button>
-                <button id="pauseButton" style="display: none; margin-top: 8px;">暂停</button>
-            </div>
+                <div class="action-buttons">
+                    <button type="button" id="startButton">开始游戏</button>
+                    <button type="button" id="pauseButton" class="hidden">暂停</button>
+                </div>
+            </aside>
         </div>
-        <div class="touch-controls" id="touchControls">
+        <div class="touch-controls" id="touchControls" aria-hidden="true">
             <div class="control-row">
-                <button id="btnLeft" class="ctrl-btn">◀</button>
-                <button id="btnRotate" class="ctrl-btn">↻</button>
-                <button id="btnRight" class="ctrl-btn">▶</button>
+                <button type="button" id="btnLeft" class="ctrl-btn" aria-label="左移">◀</button>
+                <button type="button" id="btnRotate" class="ctrl-btn" aria-label="旋转">↻</button>
+                <button type="button" id="btnRight" class="ctrl-btn" aria-label="右移">▶</button>
             </div>
             <div class="control-row">
-                <button id="btnDown" class="ctrl-btn">▼</button>
-                <button id="btnDrop" class="ctrl-btn">▼▼</button>
+                <button type="button" id="btnDown" class="ctrl-btn" aria-label="软降">▼</button>
+                <button type="button" id="btnHardDrop" class="ctrl-btn wide" aria-label="硬降">▼▼</button>
+                <button type="button" id="btnPauseTouch" class="ctrl-btn" aria-label="暂停">❚❚</button>
             </div>
         </div>
-        <div class="controls-hint">
-            <small>键盘: ← → ↓ ↑ 空格 | P 暂停/继续 | 手机: 按钮操作</small>
-        </div>
+        <footer class="controls-hint" id="controlsHint">
+            <small class="hint-desktop">← → 移动 · ↑ 旋转 · ↓ 软降 · 空格 硬降 · P 暂停</small>
+            <small class="hint-touch">使用下方按钮操作 · 点击暂停可暂停/继续</small>
+        </footer>
     </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script type="module" src="js/main.js"></script>
 </body>
 </html>

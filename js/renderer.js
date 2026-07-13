@@ -15,26 +15,30 @@ export class Renderer {
     drawCell(ctx, x, y, size, color, alpha = 1) {
         ctx.save();
         ctx.globalAlpha = alpha;
+        const px = x * size;
+        const py = y * size;
         ctx.fillStyle = color;
-        ctx.fillRect(x * size, y * size, size, size);
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillRect(x * size, y * size, size, 2);
-        ctx.fillRect(x * size, y * size, 2, size);
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.fillRect(x * size, y * size + size - 2, size, 2);
-        ctx.fillRect(x * size + size - 2, y * size, 2, size);
-        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(px, py, size, size);
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.fillRect(px, py, size, 2);
+        ctx.fillRect(px, py, 2, size);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(px, py + size - 2, size, 2);
+        ctx.fillRect(px + size - 2, py, 2, size);
+        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
         ctx.lineWidth = 1;
-        ctx.strokeRect(x * size + 0.5, y * size + 0.5, size - 1, size - 1);
+        ctx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
         ctx.restore();
     }
 
     drawBoard(grid) {
         const ctx = this.gameCtx;
-        ctx.clearRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-        ctx.fillStyle = '#0a0e27';
-        ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        const w = this.gameCanvas.width;
+        const h = this.gameCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
         ctx.lineWidth = 0.5;
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
@@ -64,19 +68,17 @@ export class Renderer {
     drawGhost(ctx, piece, x, ghostY, size) {
         const matrix = piece.getMatrix();
         ctx.save();
-        ctx.globalAlpha = 0.25;
+        ctx.globalAlpha = 0.22;
         for (let r = 0; r < matrix.length; r++) {
             for (let c = 0; c < matrix[r].length; c++) {
-                if (matrix[r][c]) {
-                    const drawY = ghostY + r;
-                    if (drawY >= 0) {
-                        ctx.fillStyle = piece.color;
-                        ctx.fillRect((x + c) * size, drawY * size, size, size);
-                        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                        ctx.lineWidth = 1;
-                        ctx.strokeRect((x + c) * size + 0.5, drawY * size + 0.5, size - 1, size - 1);
-                    }
-                }
+                if (!matrix[r][c]) continue;
+                const drawY = ghostY + r;
+                if (drawY < 0) continue;
+                ctx.fillStyle = piece.color;
+                ctx.fillRect((x + c) * size, drawY * size, size, size);
+                ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect((x + c) * size + 0.5, drawY * size + 0.5, size - 1, size - 1);
             }
         }
         ctx.restore();
@@ -84,25 +86,29 @@ export class Renderer {
 
     render(game) {
         this.drawBoard(game.board.grid);
-        if (game.currentPiece && (game.state === 'playing' || game.state === 'paused')) {
+        if (game.currentPiece && game.isActive()) {
             if (game.state === 'playing') {
                 const ghostY = game.getGhostY();
-                if (ghostY !== game.currentY) this.drawGhost(this.gameCtx, game.currentPiece, game.currentX, ghostY, CELL_SIZE);
+                if (ghostY !== game.currentY) {
+                    this.drawGhost(this.gameCtx, game.currentPiece, game.currentX, ghostY, CELL_SIZE);
+                }
             }
             this.drawPiece(this.gameCtx, game.currentPiece, game.currentX, game.currentY, CELL_SIZE);
         }
         this.drawNext(game.nextPiece);
         this.updateStats(game);
-        if (game.state === 'gameover') this.drawGameOver();
-        else if (game.state === 'idle') this.drawIdle();
-        else if (game.state === 'paused') this.drawPaused();
+        if (game.state === 'gameover') this.drawOverlay('游戏结束', '点击重新开始');
+        else if (game.state === 'idle') this.drawOverlay('TETRIS', '点击开始游戏');
+        else if (game.state === 'paused') this.drawOverlay('已暂停', '点击继续');
     }
 
     drawNext(nextPiece) {
         const ctx = this.nextCtx;
-        ctx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
-        ctx.fillStyle = '#0a0e27';
-        ctx.fillRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
+        const w = this.nextCanvas.width;
+        const h = this.nextCanvas.height;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = '#0a0a12';
+        ctx.fillRect(0, 0, w, h);
         if (!nextPiece) return;
         const matrix = nextPiece.getMatrix();
         const rows = matrix.length;
@@ -111,46 +117,42 @@ export class Renderer {
         const offsetY = (5 - rows) / 2;
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
-                if (matrix[r][c]) this.drawCell(ctx, offsetX + c, offsetY + r, PREVIEW_CELL_SIZE, nextPiece.color);
+                if (matrix[r][c]) {
+                    this.drawCell(ctx, offsetX + c, offsetY + r, PREVIEW_CELL_SIZE, nextPiece.color);
+                }
             }
         }
     }
 
     updateStats(game) {
-        document.getElementById('scoreDisplay').textContent = game.score;
-        document.getElementById('levelDisplay').textContent = game.level;
-        document.getElementById('linesDisplay').textContent = game.lines;
-        document.getElementById('speedDisplay').textContent = SPEED_LEVELS[game.speedLevel].label;
+        const scoreEl = document.getElementById('scoreDisplay');
+        const levelEl = document.getElementById('levelDisplay');
+        const linesEl = document.getElementById('linesDisplay');
+        const speedEl = document.getElementById('speedDisplay');
+        if (scoreEl) scoreEl.textContent = String(game.score);
+        if (levelEl) levelEl.textContent = String(game.level);
+        if (linesEl) linesEl.textContent = String(game.lines);
+        if (speedEl) speedEl.textContent = SPEED_LEVELS[game.speedLevel].label;
     }
 
     drawOverlay(text, subText) {
         const ctx = this.gameCtx;
+        const w = this.gameCanvas.width;
+        const h = this.gameCanvas.height;
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(0, 0, this.gameCanvas.width, this.gameCanvas.height);
-        ctx.fillStyle = '#00d4ff';
-        ctx.font = 'bold 20px "Press Start 2P", cursive';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#e8c547';
+        ctx.font = 'bold 18px "Press Start 2P", cursive';
         ctx.textAlign = 'center';
-        ctx.shadowColor = '#00d4ff';
-        ctx.shadowBlur = 10;
-        ctx.fillText(text, this.gameCanvas.width / 2, this.gameCanvas.height / 2 - 12);
-        ctx.font = '10px "Press Start 2P", cursive';
-        ctx.fillStyle = '#aaffff';
-        ctx.shadowColor = 'rgba(0, 212, 255, 0.5)';
-        ctx.shadowBlur = 5;
-        ctx.fillText(subText, this.gameCanvas.width / 2, this.gameCanvas.height / 2 + 20);
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(232, 197, 71, 0.6)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(text, w / 2, h / 2 - 14);
+        ctx.font = '9px "Press Start 2P", cursive';
+        ctx.fillStyle = '#c8c0b0';
+        ctx.shadowBlur = 4;
+        ctx.fillText(subText, w / 2, h / 2 + 18);
         ctx.restore();
-    }
-
-    drawGameOver() {
-        this.drawOverlay('游戏结束', '点击按钮重新开始');
-    }
-
-    drawIdle() {
-        this.drawOverlay('俄罗斯方块', '点击开始游戏');
-    }
-
-    drawPaused() {
-        this.drawOverlay('游戏暂停', '按 P 或点击继续按钮');
     }
 }
