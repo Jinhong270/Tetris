@@ -155,11 +155,11 @@ function returnToTitle() {
 }
 
 function handleStartButton() {
-    if (game.state === 'gameover') {
-        returnToTitle();
+    if (game.state === 'idle') {
+        startGame();
         return;
     }
-    startGame();
+    returnToTitle();
 }
 
 function handleCanvasClick() {
