@@ -2,6 +2,8 @@ import { Board } from './board.js';
 import { Piece } from './piece.js';
 import { PIECE_TYPES, COLS, SPEED_LEVELS, DEFAULT_SPEED, SCORE_MAP } from './constants.js';
 
+const HIGH_SCORES_KEY = 'tetrisHighScores';
+
 export class Game {
     constructor() {
         this.board = new Board();
@@ -40,6 +42,7 @@ export class Game {
         this.speedLevel = level;
         this.dropInterval = SPEED_LEVELS[level].drop;
         localStorage.setItem('tetrisSpeed', level);
+        this.loadHighScore();
         return true;
     }
 
@@ -49,17 +52,47 @@ export class Game {
             this.speedLevel = saved;
             this.dropInterval = SPEED_LEVELS[saved].drop;
         }
+        this.loadHighScore();
+    }
+
+    getAllHighScores() {
+        try {
+            const raw = localStorage.getItem(HIGH_SCORES_KEY);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === 'object') return parsed;
+            }
+        } catch (_) {
+        }
+        const legacy = localStorage.getItem('tetrisHighScore');
+        if (legacy) {
+            const n = parseInt(legacy, 10);
+            if (!isNaN(n) && n > 0) {
+                const migrated = { normal: n };
+                localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(migrated));
+                return migrated;
+            }
+        }
+        return {};
     }
 
     loadHighScore() {
-        const saved = localStorage.getItem('tetrisHighScore');
-        this.highScore = saved ? parseInt(saved, 10) : 0;
+        const all = this.getAllHighScores();
+        const val = all[this.speedLevel];
+        this.highScore = typeof val === 'number' ? val : parseInt(val, 10) || 0;
     }
 
     saveHighScore() {
-        if (this.score > this.highScore) {
+        const all = this.getAllHighScores();
+        const prev = typeof all[this.speedLevel] === 'number'
+            ? all[this.speedLevel]
+            : parseInt(all[this.speedLevel], 10) || 0;
+        if (this.score > prev) {
+            all[this.speedLevel] = this.score;
             this.highScore = this.score;
-            localStorage.setItem('tetrisHighScore', String(this.highScore));
+            localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(all));
+        } else {
+            this.highScore = prev;
         }
     }
 
@@ -71,6 +104,7 @@ export class Game {
         this.lastDropTime = performance.now();
         this.softDropActive = false;
         this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
+        this.loadHighScore();
         this.nextPiece = this.randomPiece();
         this.state = 'playing';
         this.spawnPiece();

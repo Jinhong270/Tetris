@@ -1,4 +1,4 @@
-import { COLS, ROWS, CELL_SIZE, PREVIEW_CELL_SIZE, SPEED_LEVELS } from './constants.js';
+import { COLS, ROWS, CELL_SIZE, PREVIEW_CELL_SIZE, SPEED_LEVELS, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
 
 export class Renderer {
     constructor(gameCanvas, nextCanvas) {
@@ -10,6 +10,15 @@ export class Renderer {
         this.gameCanvas.height = ROWS * CELL_SIZE;
         this.nextCanvas.width = 5 * PREVIEW_CELL_SIZE;
         this.nextCanvas.height = 5 * PREVIEW_CELL_SIZE;
+        this.boardBgKey = DEFAULT_BOARD_BG;
+        this.boardBg = BOARD_BGS[DEFAULT_BOARD_BG].color;
+    }
+
+    setBoardBg(key) {
+        if (!BOARD_BGS[key]) return false;
+        this.boardBgKey = key;
+        this.boardBg = BOARD_BGS[key].color;
+        return true;
     }
 
     drawCell(ctx, x, y, size, color, alpha = 1) {
@@ -36,7 +45,7 @@ export class Renderer {
         const w = this.gameCanvas.width;
         const h = this.gameCanvas.height;
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = '#0a0a12';
+        ctx.fillStyle = this.boardBg;
         ctx.fillRect(0, 0, w, h);
         ctx.strokeStyle = 'rgba(255,255,255,0.06)';
         ctx.lineWidth = 0.5;
@@ -107,7 +116,7 @@ export class Renderer {
         const w = this.nextCanvas.width;
         const h = this.nextCanvas.height;
         ctx.clearRect(0, 0, w, h);
-        ctx.fillStyle = '#0a0a12';
+        ctx.fillStyle = this.boardBg;
         ctx.fillRect(0, 0, w, h);
         if (!nextPiece) return;
         const matrix = nextPiece.getMatrix();

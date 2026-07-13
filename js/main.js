@@ -1,7 +1,7 @@
 import { Game } from './game.js';
 import { Renderer } from './renderer.js';
 import { InputHandler } from './input.js';
-import { COLS, ROWS, CELL_SIZE } from './constants.js';
+import { COLS, ROWS, CELL_SIZE, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
 
 let audioCtx = null;
 let animationId = null;
@@ -62,6 +62,7 @@ const startButton = document.getElementById('startButton');
 const pauseButton = document.getElementById('pauseButton');
 const highScoreDisplay = document.getElementById('highScoreDisplay');
 const toastEl = document.getElementById('toast');
+const canvasWrapper = document.querySelector('.canvas-wrapper');
 const body = document.body;
 
 function detectTouchSupport() {
@@ -124,6 +125,32 @@ function handlePauseToggle() {
     }
 }
 
+function startGame() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    game.start();
+    if (game.state === 'playing') {
+        if (startButton) startButton.textContent = '重新开始';
+        updatePauseButton();
+        playSound(880, 150, 'square', 0.35);
+        animationId = requestAnimationFrame(gameLoop);
+    }
+    updateHighScoreDisplay();
+    renderer.render(game);
+}
+
+function handleCanvasClick() {
+    if (game.state === 'idle' || game.state === 'gameover') {
+        startGame();
+        return;
+    }
+    if (game.state === 'paused') {
+        handlePauseToggle();
+    }
+}
+
 const input = new InputHandler(game, isTouchDevice, handlePauseToggle);
 
 function gameLoop(timestamp) {
@@ -168,33 +195,59 @@ function loadTheme() {
     if (saved) applyTheme(saved);
 }
 
+function applyBoardBg(key) {
+    if (!renderer.setBoardBg(key)) return;
+    localStorage.setItem('tetrisBoardBg', key);
+    document.querySelectorAll('.board-swatch').forEach(el => {
+        el.classList.toggle('active', el.dataset.boardBg === key);
+    });
+    if (canvasWrapper) canvasWrapper.style.background = BOARD_BGS[key].color;
+    if (nextCanvas) nextCanvas.style.background = BOARD_BGS[key].color;
+    renderer.render(game);
+}
+
+function loadBoardBg() {
+    const saved = localStorage.getItem('tetrisBoardBg');
+    const key = saved && BOARD_BGS[saved] ? saved : DEFAULT_BOARD_BG;
+    applyBoardBg(key);
+}
+
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-startButton.addEventListener('click', () => {
-    if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-    }
-    game.start();
-    if (game.state === 'playing') {
-        startButton.textContent = '重新开始';
-        updatePauseButton();
-        playSound(880, 150, 'square', 0.35);
-        animationId = requestAnimationFrame(gameLoop);
-    }
-    updateHighScoreDisplay();
-    renderer.render(game);
-});
+if (startButton) {
+    startButton.addEventListener('click', startGame);
+}
 
 if (pauseButton) {
     pauseButton.addEventListener('click', handlePauseToggle);
 }
 
-document.querySelectorAll('.swatch').forEach(swatch => {
+if (canvasWrapper) {
+    canvasWrapper.addEventListener('click', handleCanvasClick);
+    canvasWrapper.classList.add('clickable-board');
+}
+if (gameCanvas) {
+    gameCanvas.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleCanvasClick();
+    });
+}
+
+document.querySelectorAll('.swatch[data-theme]').forEach(swatch => {
     swatch.addEventListener('click', (e) => {
         const theme = e.currentTarget.dataset.theme;
         if (theme) applyTheme(theme);
+    });
+});
+
+document.querySelectorAll('.board-swatch').forEach(swatch => {
+    swatch.addEventListener('click', (e) => {
+        const key = e.currentTarget.dataset.boardBg;
+        if (key) {
+            applyBoardBg(key);
+            playSound(480, 40, 'square', 0.12);
+        }
     });
 });
 
@@ -221,6 +274,7 @@ speedButtons.forEach(btn => {
         if (game.setSpeedLevel(level)) {
             speedButtons.forEach(b => b.classList.remove('active'));
             e.currentTarget.classList.add('active');
+            updateHighScoreDisplay();
             renderer.render(game);
             playSound(520, 50, 'square', 0.15);
         }
@@ -231,6 +285,7 @@ const initialSpeedBtn = document.querySelector(`[data-speed="${game.speedLevel}"
 if (initialSpeedBtn) initialSpeedBtn.classList.add('active');
 
 loadTheme();
+loadBoardBg();
 updateHighScoreDisplay();
 updatePauseButton();
 renderer.render(game);

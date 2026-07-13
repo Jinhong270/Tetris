@@ -13,6 +13,19 @@ export const SPEED_LEVELS = {
 
 export const DEFAULT_SPEED = 'normal';
 
+export const BOARD_BGS = {
+    black: { color: '#0a0a12', label: '黑' },
+    navy: { color: '#0a1628', label: '海军' },
+    green: { color: '#0c1a10', label: '绿' },
+    purple: { color: '#160a1c', label: '紫' },
+    brown: { color: '#1a120a', label: '棕' },
+    slate: { color: '#12141a', label: '灰' },
+    blue: { color: '#0a1420', label: '蓝' },
+    cream: { color: '#1c1a14', label: '米' }
+};
+
+export const DEFAULT_BOARD_BG = 'black';
+
 export const COLORS = {
     I: '#00f0f0',
     O: '#f0f000',
