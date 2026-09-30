@@ -1,9 +1,21 @@
 import { COLS, ROWS, CELL_SIZE, PREVIEW_CELL_SIZE, SPEED_LEVELS, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
 
+function edgeSize(size) {
+    return Math.max(1, (size * 0.14) | 0);
+}
+
+function ctx2d(canvas) {
+    try {
+        return canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
+    } catch (_) {
+        return canvas.getContext('2d');
+    }
+}
+
 export class Renderer {
     constructor(gameCanvas, nextCanvas) {
-        this.gameCtx = gameCanvas.getContext('2d');
-        this.nextCtx = nextCanvas.getContext('2d');
+        this.gameCtx = ctx2d(gameCanvas);
+        this.nextCtx = ctx2d(nextCanvas);
         this.gameCanvas = gameCanvas;
         this.nextCanvas = nextCanvas;
         this.gameCanvas.width = COLS * CELL_SIZE;
@@ -12,6 +24,21 @@ export class Renderer {
         this.nextCanvas.height = 5 * PREVIEW_CELL_SIZE;
         this.boardBgKey = DEFAULT_BOARD_BG;
         this.boardBg = BOARD_BGS[DEFAULT_BOARD_BG].color;
+        this.particles = [];
+        this.scoreEl = document.getElementById('scoreDisplay');
+        this.levelEl = document.getElementById('levelDisplay');
+        this.linesEl = document.getElementById('linesDisplay');
+        this.speedEl = document.getElementById('speedDisplay');
+        this.highEl = document.getElementById('highScoreDisplay');
+        this.meterEl = document.getElementById('levelMeter');
+        this.last = {
+            score: null,
+            level: null,
+            lines: null,
+            speed: null,
+            high: null,
+            meter: null
+        };
     }
 
     setBoardBg(key) {
@@ -21,39 +48,83 @@ export class Renderer {
         return true;
     }
 
-    drawCell(ctx, x, y, size, color, alpha = 1) {
-        ctx.save();
-        ctx.globalAlpha = alpha;
+    clearFx() {
+        this.particles.length = 0;
+    }
+
+    burst(rows, grid) {
+        if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            for (let col = 0; col < COLS; col++) {
+                const color = grid[row][col];
+                if (!color) continue;
+                for (let n = 0; n < 2; n++) {
+                    this.particles.push({
+                        x: (col + Math.random()) * CELL_SIZE,
+                        y: (row + Math.random()) * CELL_SIZE,
+                        vx: (Math.random() - 0.5) * 5.2,
+                        vy: -Math.random() * 3.4 - 0.3,
+                        life: 1,
+                        color,
+                        size: 3 + Math.random() * 3
+                    });
+                }
+            }
+        }
+        if (this.particles.length > 140) {
+            this.particles.splice(0, this.particles.length - 140);
+        }
+    }
+
+    drawCell(ctx, x, y, size, color) {
         const px = x * size;
         const py = y * size;
+        const inset = size >= 20 ? 1 : 0;
+        const w = size - inset * 2;
+        const h = size - inset * 2;
+        const edge = edgeSize(size);
         ctx.fillStyle = color;
-        ctx.fillRect(px, py, size, size);
-        ctx.fillStyle = 'rgba(255,255,255,0.28)';
-        ctx.fillRect(px, py, size, 2);
-        ctx.fillRect(px, py, 2, size);
-        ctx.fillStyle = 'rgba(0,0,0,0.35)';
-        ctx.fillRect(px, py + size - 2, size, 2);
-        ctx.fillRect(px + size - 2, py, 2, size);
-        ctx.strokeStyle = 'rgba(0,0,0,0.45)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px + 0.5, py + 0.5, size - 1, size - 1);
-        ctx.restore();
+        ctx.fillRect(px + inset, py + inset, w, h);
+        ctx.fillStyle = 'rgba(255,255,255,0.42)';
+        ctx.fillRect(px + inset, py + inset, w, edge);
+        ctx.fillRect(px + inset, py + inset, edge, h);
+        ctx.fillStyle = 'rgba(0,0,0,0.32)';
+        ctx.fillRect(px + inset, py + inset + h - edge, w, edge);
+        ctx.fillRect(px + inset + w - edge, py + inset, edge, h);
+        if (size >= 18) {
+            ctx.fillStyle = 'rgba(255,255,255,0.34)';
+            const spark = Math.max(2, (size * 0.16) | 0);
+            ctx.fillRect(px + inset + edge + 1, py + inset + edge + 1, spark, spark);
+        }
     }
 
     drawBoard(grid) {
         const ctx = this.gameCtx;
         const w = this.gameCanvas.width;
         const h = this.gameCanvas.height;
-        ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = this.boardBg;
         ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-        ctx.lineWidth = 0.5;
-        for (let row = 0; row < ROWS; row++) {
-            for (let col = 0; col < COLS; col++) {
-                ctx.strokeRect(col * CELL_SIZE + 0.5, row * CELL_SIZE + 0.5, CELL_SIZE - 1, CELL_SIZE - 1);
-            }
+        const shade = ctx.createLinearGradient(0, 0, 0, h);
+        shade.addColorStop(0, 'rgba(255,255,255,0.05)');
+        shade.addColorStop(0.28, 'rgba(255,255,255,0)');
+        shade.addColorStop(1, 'rgba(0,0,0,0.28)');
+        ctx.fillStyle = shade;
+        ctx.fillRect(0, 0, w, h);
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255,255,255,0.045)';
+        ctx.lineWidth = 1;
+        for (let col = 1; col < COLS; col++) {
+            const x = col * CELL_SIZE + 0.5;
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
         }
+        for (let row = 1; row < ROWS; row++) {
+            const y = row * CELL_SIZE + 0.5;
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+        }
+        ctx.stroke();
         for (let row = 0; row < ROWS; row++) {
             for (let col = 0; col < COLS; col++) {
                 const cell = grid[row][col];
@@ -62,14 +133,13 @@ export class Renderer {
         }
     }
 
-    drawPiece(ctx, piece, x, y, size, alpha = 1) {
+    drawPiece(ctx, piece, x, y, size) {
         const matrix = piece.getMatrix();
         for (let r = 0; r < matrix.length; r++) {
             for (let c = 0; c < matrix[r].length; c++) {
-                if (matrix[r][c]) {
-                    const drawY = y + r;
-                    if (drawY >= 0) this.drawCell(ctx, x + c, drawY, size, piece.color, alpha);
-                }
+                if (!matrix[r][c]) continue;
+                const drawY = y + r;
+                if (drawY >= 0) this.drawCell(ctx, x + c, drawY, size, piece.color);
             }
         }
     }
@@ -77,24 +147,114 @@ export class Renderer {
     drawGhost(ctx, piece, x, ghostY, size) {
         const matrix = piece.getMatrix();
         ctx.save();
-        ctx.globalAlpha = 0.22;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = piece.color;
         for (let r = 0; r < matrix.length; r++) {
             for (let c = 0; c < matrix[r].length; c++) {
                 if (!matrix[r][c]) continue;
                 const drawY = ghostY + r;
                 if (drawY < 0) continue;
-                ctx.fillStyle = piece.color;
-                ctx.fillRect((x + c) * size, drawY * size, size, size);
-                ctx.strokeStyle = 'rgba(255,255,255,0.35)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect((x + c) * size + 0.5, drawY * size + 0.5, size - 1, size - 1);
+                ctx.strokeRect((x + c) * size + 3, drawY * size + 3, size - 6, size - 6);
             }
         }
         ctx.restore();
     }
 
+    drawClearFlash(rows, until, duration) {
+        if (!rows || !rows.length || !duration) return;
+        const remain = Math.max(0, until - performance.now());
+        const t = 1 - remain / duration;
+        const alpha = 0.22 + Math.abs(Math.sin(t * Math.PI * 3)) * 0.5;
+        const ctx = this.gameCtx;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < rows.length; i++) {
+            ctx.fillRect(0, rows[i] * CELL_SIZE, this.gameCanvas.width, CELL_SIZE);
+        }
+        ctx.restore();
+    }
+
+    updateParticles() {
+        const next = [];
+        for (let i = 0; i < this.particles.length; i++) {
+            const p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.16;
+            p.life -= 0.028;
+            if (p.life > 0) next.push(p);
+        }
+        this.particles = next;
+    }
+
+    drawParticles() {
+        if (!this.particles.length) return;
+        const ctx = this.gameCtx;
+        for (let i = 0; i < this.particles.length; i++) {
+            const p = this.particles[i];
+            ctx.globalAlpha = Math.max(0, p.life);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    drawVignette() {
+        const ctx = this.gameCtx;
+        const w = this.gameCanvas.width;
+        const h = this.gameCanvas.height;
+        const vg = ctx.createRadialGradient(w * 0.5, h * 0.42, h * 0.18, w * 0.5, h * 0.5, h * 0.72);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(0,0,0,0.32)');
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    pop(el) {
+        if (!el) return;
+        el.classList.remove('pop');
+        void el.offsetWidth;
+        el.classList.add('pop');
+    }
+
+    updateStats(game) {
+        if (this.scoreEl && this.last.score !== game.score) {
+            if (this.last.score !== null && game.score - this.last.score >= 40) this.pop(this.scoreEl);
+            this.scoreEl.textContent = String(game.score);
+            this.last.score = game.score;
+        }
+        if (this.levelEl && this.last.level !== game.level) {
+            this.levelEl.textContent = String(game.level);
+            this.last.level = game.level;
+        }
+        if (this.linesEl && this.last.lines !== game.lines) {
+            this.linesEl.textContent = String(game.lines);
+            this.last.lines = game.lines;
+        }
+        const speedLabel = SPEED_LEVELS[game.speedLevel].label;
+        if (this.speedEl && this.last.speed !== speedLabel) {
+            this.speedEl.textContent = speedLabel;
+            this.last.speed = speedLabel;
+        }
+        if (this.highEl && this.last.high !== game.highScore) {
+            if (this.last.high !== null && game.highScore > this.last.high) this.pop(this.highEl);
+            this.highEl.textContent = String(game.highScore || 0);
+            this.last.high = game.highScore;
+        }
+        const meter = (game.lines % 10) * 10;
+        if (this.meterEl && this.last.meter !== meter) {
+            this.meterEl.style.width = meter + '%';
+            this.last.meter = meter;
+        }
+    }
+
     render(game) {
         this.drawBoard(game.board.grid);
+        if (game.clearingRows) {
+            this.drawClearFlash(game.clearingRows, game.clearingUntil, game.clearingDuration);
+        }
         if (game.currentPiece && game.isActive()) {
             if (game.state === 'playing') {
                 const ghostY = game.getGhostY();
@@ -104,18 +264,17 @@ export class Renderer {
             }
             this.drawPiece(this.gameCtx, game.currentPiece, game.currentX, game.currentY, CELL_SIZE);
         }
+        this.updateParticles();
+        this.drawParticles();
+        this.drawVignette();
         this.drawNext(game.nextPiece);
         this.updateStats(game);
-        if (game.state === 'gameover') this.drawOverlay('游戏结束', '点击返回标题');
-        else if (game.state === 'idle') this.drawOverlay('TETRIS', '点击开始游戏');
-        else if (game.state === 'paused') this.drawOverlay('已暂停', '点击继续');
     }
 
     drawNext(nextPiece) {
         const ctx = this.nextCtx;
         const w = this.nextCanvas.width;
         const h = this.nextCanvas.height;
-        ctx.clearRect(0, 0, w, h);
         ctx.fillStyle = this.boardBg;
         ctx.fillRect(0, 0, w, h);
         if (!nextPiece) return;
@@ -131,37 +290,5 @@ export class Renderer {
                 }
             }
         }
-    }
-
-    updateStats(game) {
-        const scoreEl = document.getElementById('scoreDisplay');
-        const levelEl = document.getElementById('levelDisplay');
-        const linesEl = document.getElementById('linesDisplay');
-        const speedEl = document.getElementById('speedDisplay');
-        if (scoreEl) scoreEl.textContent = String(game.score);
-        if (levelEl) levelEl.textContent = String(game.level);
-        if (linesEl) linesEl.textContent = String(game.lines);
-        if (speedEl) speedEl.textContent = SPEED_LEVELS[game.speedLevel].label;
-    }
-
-    drawOverlay(text, subText) {
-        const ctx = this.gameCtx;
-        const w = this.gameCanvas.width;
-        const h = this.gameCanvas.height;
-        ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.78)';
-        ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = '#e8c547';
-        ctx.font = 'bold 18px "Press Start 2P", cursive';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(232, 197, 71, 0.6)';
-        ctx.shadowBlur = 8;
-        ctx.fillText(text, w / 2, h / 2 - 14);
-        ctx.font = '9px "Press Start 2P", cursive';
-        ctx.fillStyle = '#c8c0b0';
-        ctx.shadowBlur = 4;
-        ctx.fillText(subText, w / 2, h / 2 + 18);
-        ctx.restore();
     }
 }

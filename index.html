@@ -2,102 +2,153 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#07080e">
     <title>俄罗斯方块 (Made by Jinhong270)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body class="theme-classic">
-    <div class="game-container">
-        <header class="game-header">
-            <h1>TETRIS</h1>
-            <p class="subtitle">经典俄罗斯方块</p>
-        </header>
-        <div class="game-main">
-            <div class="canvas-wrapper">
-                <canvas id="gameCanvas"></canvas>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand">
+                <h1>TETRIS</h1>
+                <p>经典俄罗斯方块</p>
             </div>
-            <aside class="side-panel">
-                <div class="panel-box">
-                    <h3>下一个</h3>
-                    <canvas id="nextCanvas"></canvas>
-                </div>
-                <div class="stats-grid">
-                    <div class="panel-box">
-                        <h3>分数</h3>
-                        <p id="scoreDisplay">0</p>
-                    </div>
-                    <div class="panel-box">
-                        <h3>等级</h3>
-                        <p id="levelDisplay">1</p>
-                    </div>
-                    <div class="panel-box">
-                        <h3>消除</h3>
-                        <p id="linesDisplay">0</p>
-                    </div>
-                    <div class="panel-box">
-                        <h3>最高分</h3>
-                        <p id="highScoreDisplay">0</p>
-                    </div>
-                </div>
-                <div class="panel-box">
-                    <h3>速度</h3>
-                    <p id="speedDisplay">标准</p>
-                    <div class="speed-controls">
-                        <button type="button" class="speed-btn" data-speed="slow">慢</button>
-                        <button type="button" class="speed-btn" data-speed="normal">标准</button>
-                        <button type="button" class="speed-btn" data-speed="fast">快</button>
-                        <button type="button" class="speed-btn" data-speed="veryFast">超快</button>
-                        <button type="button" class="speed-btn" data-speed="insane">疯狂</button>
-                    </div>
-                </div>
-                <div class="panel-box" id="themePicker">
-                    <h3>主题</h3>
-                    <div class="color-swatches">
-                        <div class="swatch" data-theme="classic" style="background:linear-gradient(135deg,#1a1a2e,#16213e);" title="经典"></div>
-                        <div class="swatch" data-theme="gray" style="background:linear-gradient(135deg,#667eea,#764ba2);" title="紫"></div>
-                        <div class="swatch" data-theme="green" style="background:linear-gradient(135deg,#11998e,#38ef7d);" title="绿"></div>
-                        <div class="swatch" data-theme="blue" style="background:linear-gradient(135deg,#4facfe,#00f2fe);" title="蓝"></div>
-                        <div class="swatch" data-theme="wheat" style="background:linear-gradient(135deg,#f093fb,#f5576c);" title="粉"></div>
-                        <div class="swatch" data-theme="arcade" style="background:linear-gradient(135deg,#ff416c,#ff4b2b);" title="街机"></div>
-                    </div>
-                </div>
-                <div class="panel-box" id="boardBgPicker">
-                    <h3>棋盘背景</h3>
-                    <div class="color-swatches">
-                        <div class="swatch board-swatch" data-board-bg="black" style="background:#0a0a12;" title="黑"></div>
-                        <div class="swatch board-swatch" data-board-bg="navy" style="background:#0a1628;" title="海军"></div>
-                        <div class="swatch board-swatch" data-board-bg="green" style="background:#0c1a10;" title="绿"></div>
-                        <div class="swatch board-swatch" data-board-bg="purple" style="background:#160a1c;" title="紫"></div>
-                        <div class="swatch board-swatch" data-board-bg="brown" style="background:#1a120a;" title="棕"></div>
-                        <div class="swatch board-swatch" data-board-bg="slate" style="background:#12141a;" title="灰"></div>
-                        <div class="swatch board-swatch" data-board-bg="blue" style="background:#0a1420;" title="蓝"></div>
-                        <div class="swatch board-swatch" data-board-bg="cream" style="background:#1c1a14;" title="米"></div>
+            <div class="top-actions">
+                <button type="button" id="optionsToggle" class="options-toggle" aria-expanded="false" aria-controls="optionsPanel">选项</button>
+                <button type="button" id="soundButton" class="icon-btn" aria-pressed="false" aria-label="关闭音效">
+                    <svg class="icon-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4z" fill="currentColor"/><path d="M16.5 9.2a4.2 4.2 0 010 5.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <svg class="icon-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v4h4l5 4V6L8 10H4z" fill="currentColor"/><path d="M17 9l-4 4M13 9l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+        </header>
+        <main class="layout">
+            <div class="col-stats">
+                <article class="stat stat-score">
+                    <span>分数</span>
+                    <strong id="scoreDisplay">0</strong>
+                </article>
+                <article class="stat stat-best">
+                    <span>最高</span>
+                    <strong id="highScoreDisplay">0</strong>
+                </article>
+                <article class="stat stat-level" id="levelStat">
+                    <span>等级</span>
+                    <strong id="levelDisplay">1</strong>
+                    <i class="meter" aria-hidden="true"><b id="levelMeter"></b></i>
+                </article>
+                <article class="stat stat-lines">
+                    <span>消除</span>
+                    <strong id="linesDisplay">0</strong>
+                </article>
+            </div>
+            <section class="well">
+                <div class="bezel canvas-wrapper">
+                    <div class="screen">
+                        <canvas id="gameCanvas"></canvas>
+                        <div id="fxFlash" class="fx-flash"></div>
+                        <div id="floatText" class="float-text" aria-hidden="true"></div>
+                        <div id="screenOverlay" class="screen-overlay visible" data-mode="idle">
+                            <div class="overlay-card">
+                                <p id="overlayKicker" class="kicker">READY</p>
+                                <h2 id="overlayTitle" class="latin">TETRIS</h2>
+                                <p id="overlaySub">点击开始游戏</p>
+                                <div id="overlayStats" class="overlay-stats hidden">
+                                    <div><span>分数</span><b id="overlayScore">0</b></div>
+                                    <div><span>消除</span><b id="overlayLines">0</b></div>
+                                    <div><span>最高</span><b id="overlayBest">0</b></div>
+                                </div>
+                                <p id="recordBadge" class="record-badge hidden">新纪录</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="action-buttons">
                     <button type="button" id="startButton">开始游戏</button>
                     <button type="button" id="pauseButton" class="hidden">暂停</button>
                 </div>
-            </aside>
-        </div>
+            </section>
+            <div class="col-side">
+                <section class="panel next-wrap">
+                    <h3>下一个</h3>
+                    <canvas id="nextCanvas" aria-label="下一个"></canvas>
+                </section>
+                <section class="panel speed-panel">
+                    <div class="speed-head">
+                        <h3>速度</h3>
+                        <p id="speedDisplay">标准</p>
+                    </div>
+                    <div class="speed-controls">
+                        <button type="button" class="speed-btn" data-speed="slow" aria-pressed="false">慢</button>
+                        <button type="button" class="speed-btn" data-speed="normal" aria-pressed="false">标准</button>
+                        <button type="button" class="speed-btn" data-speed="fast" aria-pressed="false">快</button>
+                        <button type="button" class="speed-btn" data-speed="veryFast" aria-pressed="false">超快</button>
+                        <button type="button" class="speed-btn" data-speed="insane" aria-pressed="false">疯狂</button>
+                    </div>
+                </section>
+                <section class="options" id="optionsPanel">
+                    <div class="panel" id="themePicker">
+                        <h3>主题</h3>
+                        <div class="color-swatches">
+                            <button type="button" class="swatch active" data-theme="classic" style="background:linear-gradient(135deg,#1a1a2e,#16213e);" title="经典" aria-label="经典" aria-pressed="true"></button>
+                            <button type="button" class="swatch" data-theme="gray" style="background:linear-gradient(135deg,#667eea,#764ba2);" title="紫" aria-label="紫" aria-pressed="false"></button>
+                            <button type="button" class="swatch" data-theme="green" style="background:linear-gradient(135deg,#11998e,#38ef7d);" title="绿" aria-label="绿" aria-pressed="false"></button>
+                            <button type="button" class="swatch" data-theme="blue" style="background:linear-gradient(135deg,#4facfe,#00f2fe);" title="蓝" aria-label="蓝" aria-pressed="false"></button>
+                            <button type="button" class="swatch" data-theme="wheat" style="background:linear-gradient(135deg,#f093fb,#f5576c);" title="粉" aria-label="粉" aria-pressed="false"></button>
+                            <button type="button" class="swatch" data-theme="arcade" style="background:linear-gradient(135deg,#ff416c,#ff4b2b);" title="街机" aria-label="街机" aria-pressed="false"></button>
+                        </div>
+                    </div>
+                    <div class="panel" id="boardBgPicker">
+                        <h3>棋盘</h3>
+                        <div class="color-swatches">
+                            <button type="button" class="swatch board-swatch active" data-board-bg="black" style="background:#0a0a12;" title="黑" aria-label="黑" aria-pressed="true"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="navy" style="background:#0a1628;" title="海军" aria-label="海军" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="green" style="background:#0c1a10;" title="绿" aria-label="绿" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="purple" style="background:#160a1c;" title="紫" aria-label="紫" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="brown" style="background:#1a120a;" title="棕" aria-label="棕" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="slate" style="background:#12141a;" title="灰" aria-label="灰" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="blue" style="background:#0a1420;" title="蓝" aria-label="蓝" aria-pressed="false"></button>
+                            <button type="button" class="swatch board-swatch" data-board-bg="cream" style="background:#1c1a14;" title="米" aria-label="米" aria-pressed="false"></button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
         <div class="touch-controls" id="touchControls" aria-hidden="true">
             <div class="control-row">
-                <button type="button" id="btnLeft" class="ctrl-btn" aria-label="左移">◀</button>
-                <button type="button" id="btnRotate" class="ctrl-btn" aria-label="旋转">↻</button>
-                <button type="button" id="btnRight" class="ctrl-btn" aria-label="右移">▶</button>
+                <button type="button" id="btnLeft" class="ctrl-btn" aria-label="左移">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5L7.5 12l7 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="btnRotate" class="ctrl-btn" aria-label="旋转">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M19 4.2V9H14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="btnRight" class="ctrl-btn" aria-label="右移">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5L16.5 12l-7 6.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
             </div>
             <div class="control-row">
-                <button type="button" id="btnDown" class="ctrl-btn" aria-label="软降">▼</button>
-                <button type="button" id="btnHardDrop" class="ctrl-btn wide" aria-label="硬降">▼▼</button>
-                <button type="button" id="btnPauseTouch" class="ctrl-btn" aria-label="暂停">❚❚</button>
+                <button type="button" id="btnDown" class="ctrl-btn" aria-label="软降">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5L12 15.5L18 9.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="btnHardDrop" class="ctrl-btn wide" aria-label="硬降">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5L12 11l5.5-4.5M6.5 12.5L12 17l5.5-4.5" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="btnPauseTouch" class="ctrl-btn" aria-label="暂停">
+                    <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.2v14H7zM13.8 5H17v14h-3.2z" fill="currentColor"/></svg>
+                    <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5l11 6.5-11 6.5z" fill="currentColor"/></svg>
+                </button>
             </div>
         </div>
         <footer class="controls-hint" id="controlsHint">
-            <small class="hint-desktop">← → 移动 · ↑ 旋转 · ↓ 软降 · 空格 硬降 · P 暂停</small>
-            <small class="hint-touch">使用下方按钮操作 · 点击暂停可暂停/继续</small>
+            <small class="hint-desktop">← → 移动 · ↑ / W 旋转 · ↓ 软降 · 空格 硬降 · P 暂停 · 回车 确认</small>
+            <small class="hint-touch">点棋盘开始、继续或返回 · 长按左右可连续移动</small>
         </footer>
+        <p class="credit">Made by Jinhong270</p>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
     <script type="module" src="js/main.js"></script>

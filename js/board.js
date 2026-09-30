@@ -35,6 +35,14 @@ export class Board {
         }
     }
 
+    getFullRows() {
+        const rows = [];
+        for (let row = 0; row < ROWS; row++) {
+            if (this.grid[row].every(cell => cell !== 0)) rows.push(row);
+        }
+        return rows;
+    }
+
     clearLines() {
         let linesCleared = 0;
         for (let row = ROWS - 1; row >= 0; row--) {

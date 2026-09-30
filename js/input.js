@@ -1,56 +1,77 @@
+import { playMoveSound, playRotateSound, playDropSound } from './audio.js';
+
 export class InputHandler {
-    constructor(game, isTouchDevice, onPauseToggle) {
+    constructor(game, isTouchDevice, onPauseToggle, onConfirm) {
         this.game = game;
-        this.isTouch = isTouchDevice;
         this.onPauseToggle = onPauseToggle;
+        this.onConfirm = onConfirm;
+        this.keys = new Set();
         this._repeatInterval = null;
         this._repeatTimeout = null;
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleKeyUp = this.handleKeyUp.bind(this);
+        this.handleBlur = this.handleBlur.bind(this);
         document.addEventListener('keydown', this.handleKeyDown);
         document.addEventListener('keyup', this.handleKeyUp);
-        if (this.isTouch) {
-            this.bindTouchButtons();
-        }
+        window.addEventListener('blur', this.handleBlur);
+        if (isTouchDevice) this.bindTouchButtons();
+    }
+
+    handleBlur() {
+        this.keys.clear();
+        this.stopRepeat();
+        this.game.setSoftDrop(false);
     }
 
     handleKeyDown(e) {
+        const onControl = e.target && e.target.closest && e.target.closest('button, a, input, select, textarea');
+        if (onControl && (e.code === 'Space' || e.code === 'Enter')) return;
+
+        if (
+            e.code === 'ArrowLeft' ||
+            e.code === 'ArrowRight' ||
+            e.code === 'ArrowDown' ||
+            e.code === 'ArrowUp' ||
+            e.code === 'Space'
+        ) {
+            e.preventDefault();
+        }
+
         if (e.code === 'KeyP' || e.code === 'Escape') {
             e.preventDefault();
-            if (this.game.isActive() && this.onPauseToggle) {
-                this.onPauseToggle();
-            }
+            if (this.game.isActive() && this.onPauseToggle) this.onPauseToggle();
             return;
         }
+
+        if (e.code === 'Enter') {
+            e.preventDefault();
+            if (!e.repeat && this.onConfirm) this.onConfirm();
+            return;
+        }
+
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+            if (this.keys.has(e.code)) return;
+            this.keys.add(e.code);
+            this.syncHorizontal();
+            return;
+        }
+
         if (this.game.state !== 'playing') return;
+
         switch (e.code) {
-            case 'ArrowLeft':
-                e.preventDefault();
-                if (this.game.moveLeft() && window.playMoveSound) window.playMoveSound();
-                break;
-            case 'ArrowRight':
-                e.preventDefault();
-                if (this.game.moveRight() && window.playMoveSound) window.playMoveSound();
-                break;
             case 'ArrowDown':
-                e.preventDefault();
                 if (!e.repeat) this.game.setSoftDrop(true);
-                this.game.softDrop();
-                if (window.playMoveSound) window.playMoveSound();
+                if (this.game.softDrop()) playMoveSound();
                 break;
             case 'ArrowUp':
             case 'KeyX':
             case 'KeyW':
-                e.preventDefault();
-                if (!e.repeat && this.game.rotate() && window.playRotateSound) {
-                    window.playRotateSound();
-                }
+                if (!e.repeat && this.game.rotate()) playRotateSound();
                 break;
             case 'Space':
-                e.preventDefault();
                 if (!e.repeat) {
                     this.game.hardDrop();
-                    if (window.playDropSound) window.playDropSound();
+                    playDropSound();
                 }
                 break;
             default:
@@ -59,10 +80,26 @@ export class InputHandler {
     }
 
     handleKeyUp(e) {
+        if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') {
+            this.keys.delete(e.code);
+            this.syncHorizontal();
+        }
         if (e.code === 'ArrowDown') {
-            e.preventDefault();
             this.game.setSoftDrop(false);
         }
+    }
+
+    syncHorizontal() {
+        this.stopRepeat();
+        if (this.game.state !== 'playing') return;
+        const left = this.keys.has('ArrowLeft');
+        const right = this.keys.has('ArrowRight');
+        if (left === right) return;
+        const move = left ? () => this.game.moveLeft() : () => this.game.moveRight();
+        this.startRepeat(() => {
+            if (this.game.state !== 'playing') return;
+            if (move()) playMoveSound();
+        }, 150, 40);
     }
 
     stopRepeat() {
@@ -76,34 +113,39 @@ export class InputHandler {
         }
     }
 
-    startRepeat(action, initialDelay = 160, interval = 55) {
+    startRepeat(action, initialDelay = 150, interval = 40) {
         this.stopRepeat();
         action();
         this._repeatTimeout = setTimeout(() => {
-            this._repeatInterval = setInterval(() => {
-                if (this.game.state !== 'playing') {
-                    this.stopRepeat();
-                    return;
-                }
-                action();
-            }, interval);
+            this._repeatInterval = setInterval(action, interval);
         }, initialDelay);
     }
 
     bindPointer(element, onStart, onEnd) {
         if (!element) return;
+        let activeId = null;
+        const finish = (e) => {
+            if (activeId === null) return;
+            if (e && e.pointerId !== undefined && e.pointerId !== activeId) return;
+            activeId = null;
+            window.removeEventListener('pointerup', finish);
+            window.removeEventListener('pointercancel', finish);
+            onEnd();
+            element.blur();
+        };
         const start = (e) => {
             e.preventDefault();
+            if (activeId !== null) finish({ pointerId: activeId });
+            activeId = e.pointerId;
+            try {
+                element.setPointerCapture(e.pointerId);
+            } catch (_) {
+            }
+            window.addEventListener('pointerup', finish);
+            window.addEventListener('pointercancel', finish);
             onStart();
         };
-        const end = (e) => {
-            e.preventDefault();
-            onEnd();
-        };
         element.addEventListener('pointerdown', start);
-        element.addEventListener('pointerup', end);
-        element.addEventListener('pointerleave', end);
-        element.addEventListener('pointercancel', end);
         element.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
@@ -112,22 +154,22 @@ export class InputHandler {
         const right = document.getElementById('btnRight');
         const down = document.getElementById('btnDown');
         const rotateBtn = document.getElementById('btnRotate');
-        const drop = document.getElementById('btnHardDrop') || document.getElementById('btnDrop');
+        const drop = document.getElementById('btnHardDrop');
         const pauseTouch = document.getElementById('btnPauseTouch');
 
         this.bindPointer(
             left,
             () => this.startRepeat(() => {
-                if (this.game.moveLeft() && window.playMoveSound) window.playMoveSound();
-            }),
+                if (this.game.moveLeft()) playMoveSound();
+            }, 150, 40),
             () => this.stopRepeat()
         );
 
         this.bindPointer(
             right,
             () => this.startRepeat(() => {
-                if (this.game.moveRight() && window.playMoveSound) window.playMoveSound();
-            }),
+                if (this.game.moveRight()) playMoveSound();
+            }, 150, 40),
             () => this.stopRepeat()
         );
 
@@ -136,9 +178,8 @@ export class InputHandler {
             () => {
                 this.game.setSoftDrop(true);
                 this.startRepeat(() => {
-                    this.game.softDrop();
-                    if (window.playMoveSound) window.playMoveSound();
-                }, 80, 40);
+                    if (this.game.softDrop()) playMoveSound();
+                }, 70, 36);
             },
             () => {
                 this.game.setSoftDrop(false);
@@ -149,9 +190,7 @@ export class InputHandler {
         this.bindPointer(
             rotateBtn,
             () => {
-                if (this.game.state === 'playing' && this.game.rotate() && window.playRotateSound) {
-                    window.playRotateSound();
-                }
+                if (this.game.rotate()) playRotateSound();
             },
             () => {}
         );
@@ -161,7 +200,7 @@ export class InputHandler {
             () => {
                 if (this.game.state === 'playing') {
                     this.game.hardDrop();
-                    if (window.playDropSound) window.playDropSound();
+                    playDropSound();
                 }
             },
             () => {}

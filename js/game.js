@@ -1,8 +1,28 @@
 import { Board } from './board.js';
 import { Piece } from './piece.js';
 import { PIECE_TYPES, COLS, SPEED_LEVELS, DEFAULT_SPEED, SCORE_MAP } from './constants.js';
+import { playClearSound, playGameOverSound } from './audio.js';
 
 const HIGH_SCORES_KEY = 'tetrisHighScores';
+
+function storeGet(key) {
+    try {
+        return localStorage.getItem(key);
+    } catch (_) {
+        return null;
+    }
+}
+
+function storeSet(key, value) {
+    try {
+        localStorage.setItem(key, value);
+    } catch (_) {
+    }
+}
+
+function reducedMotion() {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
 
 export class Game {
     constructor() {
@@ -20,6 +40,13 @@ export class Game {
         this.speedLevel = DEFAULT_SPEED;
         this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
         this.highScore = 0;
+        this.isNewRecord = false;
+        this.bag = [];
+        this.clearingRows = null;
+        this.clearingUntil = 0;
+        this.clearingDuration = 0;
+        this.pauseStarted = 0;
+        this.onClearStart = null;
         this.loadHighScore();
     }
 
@@ -32,22 +59,32 @@ export class Game {
     }
 
     randomPiece() {
-        const type = PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
-        return new Piece(type);
+        if (this.bag.length === 0) {
+            this.bag = PIECE_TYPES.slice();
+            for (let i = this.bag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = this.bag[i];
+                this.bag[i] = this.bag[j];
+                this.bag[j] = tmp;
+            }
+        }
+        return new Piece(this.bag.pop());
     }
 
     setSpeedLevel(level) {
         if (!SPEED_LEVELS[level]) return false;
         if (!this.canChangeSpeed()) return false;
+        if (this.speedLevel === level) return true;
         this.speedLevel = level;
         this.dropInterval = SPEED_LEVELS[level].drop;
-        localStorage.setItem('tetrisSpeed', level);
+        this.isNewRecord = false;
+        storeSet('tetrisSpeed', level);
         this.loadHighScore();
         return true;
     }
 
     loadSpeedLevel() {
-        const saved = localStorage.getItem('tetrisSpeed');
+        const saved = storeGet('tetrisSpeed');
         if (saved && SPEED_LEVELS[saved]) {
             this.speedLevel = saved;
             this.dropInterval = SPEED_LEVELS[saved].drop;
@@ -57,19 +94,19 @@ export class Game {
 
     getAllHighScores() {
         try {
-            const raw = localStorage.getItem(HIGH_SCORES_KEY);
+            const raw = storeGet(HIGH_SCORES_KEY);
             if (raw) {
                 const parsed = JSON.parse(raw);
                 if (parsed && typeof parsed === 'object') return parsed;
             }
         } catch (_) {
         }
-        const legacy = localStorage.getItem('tetrisHighScore');
+        const legacy = storeGet('tetrisHighScore');
         if (legacy) {
             const n = parseInt(legacy, 10);
             if (!isNaN(n) && n > 0) {
                 const migrated = { normal: n };
-                localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(migrated));
+                storeSet(HIGH_SCORES_KEY, JSON.stringify(migrated));
                 return migrated;
             }
         }
@@ -90,9 +127,11 @@ export class Game {
         if (this.score > prev) {
             all[this.speedLevel] = this.score;
             this.highScore = this.score;
-            localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(all));
+            this.isNewRecord = this.score > 0;
+            storeSet(HIGH_SCORES_KEY, JSON.stringify(all));
         } else {
             this.highScore = prev;
+            this.isNewRecord = false;
         }
     }
 
@@ -103,6 +142,12 @@ export class Game {
         this.lines = 0;
         this.lastDropTime = performance.now();
         this.softDropActive = false;
+        this.bag = [];
+        this.clearingRows = null;
+        this.clearingUntil = 0;
+        this.clearingDuration = 0;
+        this.pauseStarted = 0;
+        this.isNewRecord = false;
         this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
         this.loadHighScore();
         this.nextPiece = this.randomPiece();
@@ -118,36 +163,44 @@ export class Game {
         this.currentY = 0;
         this.softDropActive = false;
         this.lastDropTime = 0;
+        this.clearingRows = null;
+        this.clearingUntil = 0;
+        this.clearingDuration = 0;
+        this.pauseStarted = 0;
         this.dropInterval = SPEED_LEVELS[this.speedLevel].drop;
         this.loadHighScore();
         this.state = 'idle';
     }
 
+    shiftPauseClock() {
+        const now = performance.now();
+        const delta = this.pauseStarted ? now - this.pauseStarted : 0;
+        if (this.clearingUntil) this.clearingUntil += delta;
+        this.lastDropTime = now;
+        this.pauseStarted = 0;
+    }
+
     pause() {
-        if (this.state === 'playing') {
-            this.state = 'paused';
-            return true;
-        }
-        return false;
+        if (this.state !== 'playing') return false;
+        this.state = 'paused';
+        this.pauseStarted = performance.now();
+        return true;
     }
 
     resume() {
-        if (this.state === 'paused') {
-            this.state = 'playing';
-            this.lastDropTime = performance.now();
-            return true;
-        }
-        return false;
+        if (this.state !== 'paused') return false;
+        this.shiftPauseClock();
+        this.state = 'playing';
+        return true;
     }
 
     togglePause() {
         if (this.state === 'playing') {
-            this.state = 'paused';
+            this.pause();
             return 'paused';
         }
         if (this.state === 'paused') {
-            this.state = 'playing';
-            this.lastDropTime = performance.now();
+            this.resume();
             return 'playing';
         }
         return this.state;
@@ -171,7 +224,7 @@ export class Game {
             this.state = 'gameover';
             this.currentPiece = null;
             this.saveHighScore();
-            if (window.playGameOverSound) window.playGameOverSound();
+            playGameOverSound();
         }
     }
 
@@ -232,15 +285,22 @@ export class Game {
     }
 
     softDrop() {
-        if (this.state !== 'playing' || !this.currentPiece) return;
+        if (this.state !== 'playing' || !this.currentPiece) return false;
         if (this.moveDown()) {
             this.score += 1;
             this.lastDropTime = performance.now();
+            return true;
         }
+        return false;
     }
 
     update(timestamp) {
-        if (this.state !== 'playing' || !this.currentPiece) return;
+        if (this.state !== 'playing') return;
+        if (!this.currentPiece && !this.clearingUntil) return;
+        if (this.clearingUntil) {
+            if (timestamp >= this.clearingUntil) this.finishClear(timestamp);
+            return;
+        }
         const effectiveInterval = this.softDropActive
             ? Math.max(50, this.dropInterval / 20)
             : this.dropInterval;
@@ -251,6 +311,20 @@ export class Game {
         }
     }
 
+    registerClear(count) {
+        if (count <= 0) return { gained: 0, levelUp: false };
+        const prevLevel = this.level;
+        this.lines += count;
+        const gained = (SCORE_MAP[count] || 0) * this.level;
+        this.score += gained;
+        this.level = Math.floor(this.lines / 10) + 1;
+        this.dropInterval = Math.max(
+            80,
+            SPEED_LEVELS[this.speedLevel].drop - (this.level - 1) * 50
+        );
+        return { gained, levelUp: this.level > prevLevel };
+    }
+
     lockCurrent() {
         if (!this.currentPiece) return;
         this.board.lockPiece(
@@ -259,19 +333,30 @@ export class Game {
             this.currentY,
             this.currentPiece.color
         );
-        const cleared = this.board.clearLines();
-        if (cleared > 0) {
-            this.lines += cleared;
-            this.score += SCORE_MAP[cleared] * this.level;
-            this.level = Math.floor(this.lines / 10) + 1;
-            this.dropInterval = Math.max(
-                80,
-                SPEED_LEVELS[this.speedLevel].drop - (this.level - 1) * 50
-            );
-            if (window.playClearSound) window.playClearSound(cleared);
+        const rows = this.board.getFullRows();
+        this.currentPiece = null;
+        this.softDropActive = false;
+        if (rows.length > 0) {
+            const { gained, levelUp } = this.registerClear(rows.length);
+            const dur = reducedMotion() ? 40 : (rows.length >= 4 ? 380 : 220);
+            this.clearingRows = rows;
+            this.clearingDuration = dur;
+            this.clearingUntil = performance.now() + dur;
+            playClearSound(rows.length);
+            if (this.onClearStart) this.onClearStart(rows, gained, levelUp);
+            return;
         }
         this.spawnPiece();
+    }
+
+    finishClear(timestamp) {
+        this.board.clearLines();
+        this.clearingRows = null;
+        this.clearingUntil = 0;
+        this.clearingDuration = 0;
+        this.spawnPiece();
         this.softDropActive = false;
+        this.lastDropTime = timestamp;
     }
 
     getGhostY() {
