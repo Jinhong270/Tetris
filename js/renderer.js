@@ -1,4 +1,5 @@
 import { COLS, ROWS, CELL_SIZE, PREVIEW_CELL_SIZE, SPEED_LEVELS, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
+import { t } from './i18n.js';
 
 function edgeSize(size) {
     return Math.max(1, (size * 0.14) | 0);
@@ -233,7 +234,7 @@ export class Renderer {
             this.linesEl.textContent = String(game.lines);
             this.last.lines = game.lines;
         }
-        const speedLabel = SPEED_LEVELS[game.speedLevel].label;
+        const speedLabel = t(SPEED_LEVELS[game.speedLevel].labelKey);
         if (this.speedEl && this.last.speed !== speedLabel) {
             this.speedEl.textContent = speedLabel;
             this.last.speed = speedLabel;

@@ -13,7 +13,7 @@
     --muted: #b1aa9d;
     --danger: #ff5d73;
     --ink: #f7f2e6;
-    --font-ui: "ZCOOL KuaiLe", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --font-ui: "Noto Sans", "PingFang SC", "PingFang TC", "PingFang HK", "Hiragino Sans", "Hiragino Sans GB", "Microsoft YaHei", "Microsoft JhengHei", "Noto Sans Arabic", "Noto Sans Hebrew", "Noto Sans Devanagari", "Noto Sans Thai", sans-serif;
     --font-pixel: "Press Start 2P", "Courier New", monospace;
 }
 
@@ -161,6 +161,10 @@ body.theme-dark {
     border-bottom: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
+.brand {
+    min-width: 0;
+}
+
 .brand h1 {
     font-family: var(--font-pixel);
     font-size: 22px;
@@ -175,8 +179,10 @@ body.theme-dark {
 .brand p {
     margin-top: 6px;
     font-size: 16px;
-    letter-spacing: 1px;
+    letter-spacing: 0.04em;
+    line-height: 1.35;
     color: var(--muted);
+    overflow-wrap: anywhere;
 }
 
 .top-actions {
@@ -423,10 +429,18 @@ body.theme-dark {
 }
 
 .kicker {
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--accent2);
+}
+
+.kicker.pixel {
     font-family: var(--font-pixel);
     font-size: 8px;
+    font-weight: 400;
     letter-spacing: 1px;
-    color: var(--accent2);
 }
 
 .overlay-card h2 {
@@ -434,6 +448,7 @@ body.theme-dark {
     font-size: 28px;
     line-height: 1.25;
     color: var(--accent);
+    overflow-wrap: anywhere;
 }
 
 .overlay-card h2.latin {
@@ -536,7 +551,13 @@ body.theme-dark {
     background: rgba(0, 0, 0, 0.28);
     color: var(--muted);
     font-size: 14px;
-    white-space: nowrap;
+    white-space: normal;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
     min-width: 0;
 }
 
@@ -697,6 +718,7 @@ body.touch-device .touch-controls {
     color: var(--muted);
     font-size: 13px;
     line-height: 1.55;
+    overflow-wrap: anywhere;
 }
 
 body:not(.touch-device) .hint-touch {
@@ -1098,6 +1120,52 @@ body.touch-device .hint-desktop {
 
     body.touch-device .toast {
         bottom: 12px;
+    }
+}
+
+html:not([data-locale]) .app {
+    visibility: hidden;
+}
+
+html.locale-compact .brand p,
+html.locale-compact .stat span,
+html.locale-compact .panel h3,
+html.locale-compact .speed-head h3,
+html.locale-compact #startButton,
+html.locale-compact #pauseButton,
+html.locale-compact .options-toggle,
+html.locale-compact .kicker:not(.pixel) {
+    letter-spacing: 0;
+}
+
+html[dir="rtl"] .touch-controls,
+html[dir="rtl"] .control-row,
+html[dir="rtl"] .speed-controls,
+html[dir="rtl"] .screen,
+html[dir="rtl"] .action-buttons,
+html[dir="rtl"] .color-swatches {
+    direction: ltr;
+}
+
+html[dir="rtl"] .brand,
+html[dir="rtl"] .stat,
+html[dir="rtl"] .panel,
+html[dir="rtl"] .controls-hint,
+html[dir="rtl"] .toast,
+html[dir="rtl"] .speed-head {
+    text-align: right;
+}
+
+html[dir="rtl"] .overlay-card,
+html[dir="rtl"] .next-wrap,
+html[dir="rtl"] .credit,
+html[dir="rtl"] .top-actions {
+    text-align: center;
+}
+
+@media (max-width: 860px) and (orientation: landscape) and (max-height: 540px) {
+    html[dir="rtl"] .stat {
+        text-align: right;
     }
 }
 

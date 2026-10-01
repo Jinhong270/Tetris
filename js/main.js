@@ -1,3 +1,4 @@
+import { bootI18n, t } from './i18n.js';
 import { Game } from './game.js';
 import { Renderer } from './renderer.js';
 import { InputHandler } from './input.js';
@@ -11,7 +12,9 @@ import {
     playUiSound
 } from './audio.js';
 
-const CLEAR_NAME = ['', '单消', '双消', '三消', 'TETRIS'];
+await bootI18n();
+
+const CLEAR_KEYS = [null, 'clear1', 'clear2', 'clear3', 'clear4'];
 const THEMES = ['classic', 'gray', 'green', 'blue', 'wheat', 'arcade', 'dark'];
 
 let animationId = null;
@@ -84,7 +87,7 @@ function showFloat(text) {
 
 game.onClearStart = (rows, gained, levelUp) => {
     renderer.burst(rows, game.board.grid);
-    const name = CLEAR_NAME[rows.length] || '';
+    const name = CLEAR_KEYS[rows.length] ? t(CLEAR_KEYS[rows.length]) : '';
     showFloat(name ? `${name} +${gained}` : `+${gained}`);
     if (rows.length >= 4 && !motionReduced()) {
         pulse(fxFlash, 'boom');
@@ -130,18 +133,18 @@ function syncPauseButton() {
     if (pauseButton) {
         if (game.isActive()) {
             pauseButton.classList.remove('hidden');
-            pauseButton.textContent = game.state === 'paused' ? '继续' : '暂停';
+            pauseButton.textContent = game.state === 'paused' ? t('resume') : t('pause');
         } else {
             pauseButton.classList.add('hidden');
         }
     }
     if (startButton) {
-        startButton.textContent = game.state === 'idle' ? '开始游戏' : '重新开始';
+        startButton.textContent = game.state === 'idle' ? t('start') : t('restart');
     }
     if (touchPause) {
         const paused = game.state === 'paused';
         touchPause.classList.toggle('is-paused', paused);
-        touchPause.setAttribute('aria-label', paused ? '继续' : '暂停');
+        touchPause.setAttribute('aria-label', paused ? t('resume') : t('pause'));
     }
 }
 
@@ -156,26 +159,17 @@ function syncOverlay() {
         recordBadge.classList.toggle('hidden', !(game.state === 'gameover' && game.isNewRecord));
     }
     if (game.state === 'idle') {
-        if (overlayKicker) overlayKicker.textContent = 'READY';
-        if (overlayTitle) {
-            overlayTitle.textContent = 'TETRIS';
-            overlayTitle.classList.add('latin');
-        }
-        if (overlaySub) overlaySub.textContent = '点击开始游戏';
+        setKicker(t('kickerReady'));
+        setOverlayTitle(t('titleIdle'));
+        if (overlaySub) overlaySub.textContent = t('subIdle');
     } else if (game.state === 'paused') {
-        if (overlayKicker) overlayKicker.textContent = 'PAUSE';
-        if (overlayTitle) {
-            overlayTitle.textContent = '已暂停';
-            overlayTitle.classList.remove('latin');
-        }
-        if (overlaySub) overlaySub.textContent = '点击继续';
+        setKicker(t('kickerPause'));
+        setOverlayTitle(t('titlePause'));
+        if (overlaySub) overlaySub.textContent = t('subPause');
     } else if (game.state === 'gameover') {
-        if (overlayKicker) overlayKicker.textContent = 'GAME OVER';
-        if (overlayTitle) {
-            overlayTitle.textContent = '游戏结束';
-            overlayTitle.classList.remove('latin');
-        }
-        if (overlaySub) overlaySub.textContent = '点击返回标题';
+        setKicker(t('kickerOver'));
+        setOverlayTitle(t('titleOver'));
+        if (overlaySub) overlaySub.textContent = t('subOver');
         if (overlayScore) overlayScore.textContent = String(game.score);
         if (overlayLines) overlayLines.textContent = String(game.lines);
         if (overlayBest) overlayBest.textContent = String(game.highScore || 0);
@@ -199,12 +193,28 @@ function syncChrome() {
     syncSpeedLock();
 }
 
+function isAscii(text) {
+    return /^[\u0020-\u007E]+$/.test(text);
+}
+
+function setKicker(text) {
+    if (!overlayKicker) return;
+    overlayKicker.textContent = text;
+    overlayKicker.classList.toggle('pixel', isAscii(text));
+}
+
+function setOverlayTitle(text) {
+    if (!overlayTitle) return;
+    overlayTitle.textContent = text;
+    overlayTitle.classList.toggle('latin', isAscii(text));
+}
+
 function setOptionsOpen(open) {
     if (!optionsPanel || !optionsToggle) return;
     const show = !narrowLayout() || open;
     optionsPanel.classList.toggle('open', show);
     optionsToggle.setAttribute('aria-expanded', show ? 'true' : 'false');
-    optionsToggle.textContent = show && narrowLayout() ? '收起选项' : '选项';
+    optionsToggle.textContent = show && narrowLayout() ? t('optionsClose') : t('options');
 }
 
 function noteState(next) {
@@ -269,7 +279,7 @@ function syncSoundButton() {
     const muted = isMuted();
     soundButton.classList.toggle('is-muted', muted);
     soundButton.setAttribute('aria-pressed', muted ? 'true' : 'false');
-    soundButton.setAttribute('aria-label', muted ? '打开音效' : '关闭音效');
+    soundButton.setAttribute('aria-label', muted ? t('soundOn') : t('soundOff'));
 }
 
 function applyTheme(theme) {
@@ -491,7 +501,7 @@ document.querySelectorAll('.speed-btn').forEach((btn) => {
                 syncChrome();
                 renderer.render(game);
             }
-            showToast('游戏进行中无法调节速度，请等待本局结束后再试。游戏已暂停。');
+            showToast(t('toastSpeed'));
             playSound(220, 100, 'square', 0.18);
             return;
         }
