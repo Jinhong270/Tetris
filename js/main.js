@@ -16,11 +16,14 @@ await bootI18n();
 
 const CLEAR_KEYS = [null, 'clear1', 'clear2', 'clear3', 'clear4'];
 const THEMES = ['classic', 'gray', 'green', 'blue', 'wheat', 'arcade', 'dark'];
+const LAND_QUERY = '(orientation: landscape) and (max-height: 540px), (orientation: landscape) and (pointer: coarse) and (max-height: 820px)';
 
 let animationId = null;
 let toastTimer = null;
 let resizeTick = 0;
+let lastNarrow = null;
 
+const root = document.documentElement;
 const gameCanvas = document.getElementById('gameCanvas');
 const nextCanvas = document.getElementById('nextCanvas');
 const startButton = document.getElementById('startButton');
@@ -44,8 +47,15 @@ const floatText = document.getElementById('floatText');
 const fxFlash = document.getElementById('fxFlash');
 const levelStat = document.getElementById('levelStat');
 const touchPause = document.getElementById('btnPauseTouch');
-const speedPanel = document.querySelector('.speed-panel');
-const nextWrap = document.querySelector('.next-wrap');
+const touchBar = document.getElementById('touchControls');
+const appEl = document.querySelector('.app');
+const layoutEl = document.querySelector('.layout');
+const wellEl = document.querySelector('.well');
+const bezelEl = document.querySelector('.bezel');
+const statsCol = document.querySelector('.col-stats');
+const sideCol = document.querySelector('.col-side');
+const hintEl = document.getElementById('controlsHint');
+const creditEl = document.querySelector('.credit');
 
 function detectTouchSupport() {
     return (
@@ -58,8 +68,7 @@ function detectTouchSupport() {
 const isTouchDevice = detectTouchSupport();
 if (isTouchDevice) {
     body.classList.add('touch-device');
-    const touchControls = document.getElementById('touchControls');
-    if (touchControls) touchControls.setAttribute('aria-hidden', 'false');
+    if (touchBar) touchBar.setAttribute('aria-hidden', 'false');
 }
 
 loadMuted();
@@ -115,8 +124,7 @@ function viewportSize() {
 }
 
 function landscapeCompact() {
-    const { w, h } = viewportSize();
-    return h <= 540 && w > h && w <= 860;
+    return window.matchMedia(LAND_QUERY).matches;
 }
 
 function narrowLayout() {
@@ -225,47 +233,46 @@ function noteState(next) {
     if (next === 'playing') setOptionsOpen(false);
 }
 
+function extraHeight(el) {
+    if (!el || getComputedStyle(el).display === 'none') return 0;
+    return el.offsetHeight + (parseFloat(getComputedStyle(el).marginTop) || 0);
+}
+
 function resizeCanvas() {
     const { w: vw, h: vh } = viewportSize();
     const narrow = narrowLayout();
     const land = landscapeCompact();
-    const bezelPad = narrow ? 16 : 22;
+    const dock = narrow && body.classList.contains('touch-device') && touchBar ? touchBar.offsetHeight : 0;
+    root.style.setProperty('--dock-h', `${dock}px`);
+
+    const bodyStyle = getComputedStyle(body);
+    const pageH = appEl.offsetHeight + parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
+    const layoutH = layoutEl.offsetHeight;
+    const outerH = pageH - layoutH;
+    const canvasH = gameCanvas.offsetHeight;
+    const bezelX = bezelEl.offsetWidth - gameCanvas.offsetWidth;
+    const gap = parseFloat(getComputedStyle(layoutEl).columnGap) || 0;
+
+    root.style.setProperty('--col-max', `${Math.max(160, Math.floor(vh - outerH))}px`);
+
+    let chromeH;
     let availableW;
-    let availableH;
     if (land) {
-        availableH = vh - 28;
-        availableW = Math.max(120, vw - 280);
+        chromeH = outerH + wellEl.offsetHeight - canvasH;
+        availableW = layoutEl.clientWidth - 240 - gap * 2 - bezelX;
     } else if (narrow) {
-        const touchBar = document.getElementById('touchControls');
-        const dock = body.classList.contains('touch-device') && touchBar
-            && getComputedStyle(touchBar).display !== 'none'
-            ? touchBar.offsetHeight
-            : 0;
-        const top = document.querySelector('.topbar');
-        const topH = top ? top.offsetHeight : 44;
-        const score = document.querySelector('.stat-score');
-        const statH = score ? score.offsetHeight : 52;
-        const speedH = speedPanel ? speedPanel.offsetHeight : 56;
-        const nextH = nextWrap ? nextWrap.offsetHeight : 0;
-        const hud = statH + Math.max(speedH, nextH) + 12;
-        const actions = document.querySelector('.action-buttons');
-        const actionsH = actions ? actions.offsetHeight : 48;
-        const optionsH = optionsPanel && optionsPanel.classList.contains('open')
-            ? optionsPanel.offsetHeight + 8
-            : 0;
-        const hint = document.getElementById('controlsHint');
-        const hintH = hint && getComputedStyle(hint).display !== 'none' ? hint.offsetHeight : 0;
-        availableW = vw - 32 - bezelPad;
-        availableH = vh - dock - topH - hud - actionsH - optionsH - hintH - 28 - bezelPad;
+        const skipped = isTouchDevice ? extraHeight(hintEl) + extraHeight(creditEl) : 0;
+        chromeH = pageH - canvasH - skipped;
+        availableW = layoutEl.clientWidth - bezelX;
     } else {
-        availableW = Math.min(340, vw - 440);
-        availableH = vh - 150;
+        chromeH = outerH + wellEl.offsetHeight - canvasH;
+        availableW = layoutEl.clientWidth - statsCol.offsetWidth - sideCol.offsetWidth - gap * 2 - bezelX;
     }
-    let width = Math.min(availableW, availableH / 2);
-    const cap = land ? 300 : (narrow ? 480 : 340);
+
+    const cap = land ? 360 : (narrow ? 480 : 420);
+    let width = Math.min(availableW, (vh - chromeH) / 2, cap);
     if (!Number.isFinite(width)) width = 220;
-    width = Math.max(150, Math.min(width, cap));
-    width = Math.round(width / 4) * 4;
+    width = Math.max(100, Math.floor(width / 4) * 4);
     const scale = width / (COLS * CELL_SIZE);
     const cssW = Math.round(COLS * CELL_SIZE * scale);
     const cssH = Math.round(ROWS * CELL_SIZE * scale);
@@ -427,14 +434,37 @@ new InputHandler(game, isTouchDevice, handlePauseToggle, handleBoardAction);
 function onResize() {
     cancelAnimationFrame(resizeTick);
     resizeTick = requestAnimationFrame(() => {
-        if (!narrowLayout()) setOptionsOpen(true);
+        const narrow = narrowLayout();
+        if (!narrow) setOptionsOpen(true);
+        else if (lastNarrow === false) setOptionsOpen(false);
+        lastNarrow = narrow;
         resizeCanvas();
+        if (!animationId) renderer.render(game);
     });
 }
 
 window.addEventListener('resize', onResize);
+window.addEventListener('load', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 80));
 if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+
+if (window.ResizeObserver) {
+    const observer = new ResizeObserver(onResize);
+    [
+        '.topbar',
+        '.stat-score',
+        '.next-wrap',
+        '.speed-panel',
+        '.action-buttons',
+        '#optionsPanel',
+        '#controlsHint',
+        '.credit',
+        '#touchControls'
+    ].forEach((selector) => {
+        const el = document.querySelector(selector);
+        if (el) observer.observe(el);
+    });
+}
 
 if (startButton) {
     startButton.addEventListener('click', () => {
