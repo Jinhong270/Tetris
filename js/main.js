@@ -2,7 +2,7 @@ import { bootI18n, t } from './i18n.js';
 import { Game } from './game.js';
 import { Renderer } from './renderer.js';
 import { InputHandler } from './input.js';
-import { COLS, ROWS, CELL_SIZE, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
+import { COLS, ROWS, BOARD_BGS, DEFAULT_BOARD_BG } from './constants.js';
 import {
     loadMuted,
     isMuted,
@@ -22,6 +22,8 @@ let animationId = null;
 let toastTimer = null;
 let resizeTick = 0;
 let lastNarrow = null;
+let resizeKey = '';
+let dropFrom = null;
 
 const root = document.documentElement;
 const gameCanvas = document.getElementById('gameCanvas');
@@ -57,6 +59,8 @@ const sideCol = document.querySelector('.col-side');
 const hintEl = document.getElementById('controlsHint');
 const creditEl = document.querySelector('.credit');
 
+body.insertAdjacentHTML('afterbegin', '<div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>');
+
 function detectTouchSupport() {
     return (
         'ontouchstart' in window ||
@@ -76,6 +80,30 @@ loadMuted();
 const game = new Game();
 game.loadSpeedLevel();
 const renderer = new Renderer(gameCanvas, nextCanvas);
+
+const rawLock = game.lockCurrent.bind(game);
+const rawHardDrop = game.hardDrop.bind(game);
+
+game.hardDrop = () => {
+    dropFrom = game.currentY;
+    rawHardDrop();
+    dropFrom = null;
+};
+
+game.lockCurrent = () => {
+    const piece = game.currentPiece;
+    if (piece) {
+        const matrix = piece.getMatrix();
+        const cells = [];
+        for (let r = 0; r < matrix.length; r++) {
+            for (let c = 0; c < matrix[r].length; c++) {
+                if (matrix[r][c]) cells.push([game.currentX + c, game.currentY + r]);
+            }
+        }
+        renderer.noteLock(cells, piece.color, matrix, game.currentX, dropFrom, game.currentY);
+    }
+    rawLock();
+};
 
 function motionReduced() {
     return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -98,6 +126,7 @@ game.onClearStart = (rows, gained, levelUp) => {
     renderer.burst(rows, game.board.grid);
     const name = CLEAR_KEYS[rows.length] ? t(CLEAR_KEYS[rows.length]) : '';
     showFloat(name ? `${name} +${gained}` : `+${gained}`);
+    fxFlash.style.setProperty('--fy', `${(((rows[0] + rows[rows.length - 1] + 1) / 2) / ROWS) * 100}%`);
     if (rows.length >= 4 && !motionReduced()) {
         pulse(fxFlash, 'boom');
         pulse(screenEl, 'shake');
@@ -214,6 +243,7 @@ function setKicker(text) {
 function setOverlayTitle(text) {
     if (!overlayTitle) return;
     overlayTitle.textContent = text;
+    overlayTitle.style.setProperty('--tl', String(Math.max(4, Array.from(text).length)));
     overlayTitle.classList.toggle('latin', isAscii(text));
 }
 
@@ -239,7 +269,7 @@ function extraHeight(el) {
 }
 
 function resizeCanvas() {
-    const { w: vw, h: vh } = viewportSize();
+    const { h: vh } = viewportSize();
     const narrow = narrowLayout();
     const land = landscapeCompact();
     const dock = narrow && body.classList.contains('touch-device') && touchBar ? touchBar.offsetHeight : 0;
@@ -269,16 +299,22 @@ function resizeCanvas() {
         availableW = layoutEl.clientWidth - statsCol.offsetWidth - sideCol.offsetWidth - gap * 2 - bezelX;
     }
 
-    const cap = land ? 360 : (narrow ? 480 : 420);
+    const cap = land ? 400 : (narrow ? 520 : 680);
     let width = Math.min(availableW, (vh - chromeH) / 2, cap);
     if (!Number.isFinite(width)) width = 220;
-    width = Math.max(100, Math.floor(width / 4) * 4);
-    const scale = width / (COLS * CELL_SIZE);
-    const cssW = Math.round(COLS * CELL_SIZE * scale);
-    const cssH = Math.round(ROWS * CELL_SIZE * scale);
-    if (gameCanvas.style.width === `${cssW}px` && gameCanvas.style.height === `${cssH}px`) return;
+    width = Math.max(100, width);
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const cell = Math.max(8, Math.floor((width * dpr) / COLS));
+    const cssW = (cell * COLS) / dpr;
+    const cssH = (cssW * ROWS) / COLS;
+    const key = `${cell}|${dpr}|${nextCanvas.clientWidth}`;
+    if (resizeKey === key) return;
+    resizeKey = key;
     gameCanvas.style.width = `${cssW}px`;
     gameCanvas.style.height = `${cssH}px`;
+    root.style.setProperty('--bw', `${cssW}px`);
+    renderer.resize(cell, dpr);
+    renderer.render(game);
 }
 
 function syncSoundButton() {
