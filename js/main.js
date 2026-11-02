@@ -16,7 +16,7 @@ await bootI18n();
 
 const CLEAR_KEYS = [null, 'clear1', 'clear2', 'clear3', 'clear4'];
 const THEMES = ['classic', 'gray', 'green', 'blue', 'wheat', 'arcade', 'dark'];
-const LAND_QUERY = '(orientation: landscape) and (max-height: 540px), (orientation: landscape) and (pointer: coarse) and (max-height: 820px)';
+const STACK_QUERY = '(max-aspect-ratio: 11/10)';
 
 let animationId = null;
 let toastTimer = null;
@@ -32,6 +32,7 @@ const startButton = document.getElementById('startButton');
 const pauseButton = document.getElementById('pauseButton');
 const toastEl = document.getElementById('toast');
 const screenEl = document.querySelector('.screen');
+const slotEl = document.querySelector('.bezel');
 const body = document.body;
 const soundButton = document.getElementById('soundButton');
 const optionsPanel = document.getElementById('optionsPanel');
@@ -50,14 +51,6 @@ const fxFlash = document.getElementById('fxFlash');
 const levelStat = document.getElementById('levelStat');
 const touchPause = document.getElementById('btnPauseTouch');
 const touchBar = document.getElementById('touchControls');
-const appEl = document.querySelector('.app');
-const layoutEl = document.querySelector('.layout');
-const wellEl = document.querySelector('.well');
-const bezelEl = document.querySelector('.bezel');
-const statsCol = document.querySelector('.col-stats');
-const sideCol = document.querySelector('.col-side');
-const hintEl = document.getElementById('controlsHint');
-const creditEl = document.querySelector('.credit');
 
 body.insertAdjacentHTML('afterbegin', '<div class="bg" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>');
 
@@ -152,13 +145,8 @@ function viewportSize() {
     };
 }
 
-function landscapeCompact() {
-    return window.matchMedia(LAND_QUERY).matches;
-}
-
 function narrowLayout() {
-    const { w } = viewportSize();
-    return w <= 860 && !landscapeCompact();
+    return window.matchMedia(STACK_QUERY).matches;
 }
 
 function syncBodyState() {
@@ -263,50 +251,27 @@ function noteState(next) {
     if (next === 'playing') setOptionsOpen(false);
 }
 
-function extraHeight(el) {
-    if (!el || getComputedStyle(el).display === 'none') return 0;
-    return el.offsetHeight + (parseFloat(getComputedStyle(el).marginTop) || 0);
+function boxExtra(style, horizontal) {
+    const sides = horizontal ? ['Left', 'Right'] : ['Top', 'Bottom'];
+    return sides.reduce(
+        (sum, side) => sum + (parseFloat(style[`padding${side}`]) || 0) + (parseFloat(style[`border${side}Width`]) || 0),
+        0
+    );
 }
 
 function resizeCanvas() {
-    const { h: vh } = viewportSize();
+    const { w, h } = viewportSize();
     const narrow = narrowLayout();
-    const land = landscapeCompact();
-    const dock = narrow && body.classList.contains('touch-device') && touchBar ? touchBar.offsetHeight : 0;
-    root.style.setProperty('--dock-h', `${dock}px`);
+    const unit = Math.max(11.5, Math.min(20, w / (narrow ? 27 : 74), h / (narrow ? 54 : 40)));
+    root.style.fontSize = `${unit.toFixed(2)}px`;
 
-    const bodyStyle = getComputedStyle(body);
-    const pageH = appEl.offsetHeight + parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
-    const layoutH = layoutEl.offsetHeight;
-    const outerH = pageH - layoutH;
-    const canvasH = gameCanvas.offsetHeight;
-    const bezelX = bezelEl.offsetWidth - gameCanvas.offsetWidth;
-    const gap = parseFloat(getComputedStyle(layoutEl).columnGap) || 0;
-
-    root.style.setProperty('--col-max', `${Math.max(160, Math.floor(vh - outerH))}px`);
-
-    let chromeH;
-    let availableW;
-    if (land) {
-        chromeH = outerH + wellEl.offsetHeight - canvasH;
-        availableW = layoutEl.clientWidth - 240 - gap * 2 - bezelX;
-    } else if (narrow) {
-        const skipped = isTouchDevice ? extraHeight(hintEl) + extraHeight(creditEl) : 0;
-        chromeH = pageH - canvasH - skipped;
-        availableW = layoutEl.clientWidth - bezelX;
-    } else {
-        chromeH = outerH + wellEl.offsetHeight - canvasH;
-        availableW = layoutEl.clientWidth - statsCol.offsetWidth - sideCol.offsetWidth - gap * 2 - bezelX;
-    }
-
-    const cap = land ? 400 : (narrow ? 520 : 680);
-    let width = Math.min(availableW, (vh - chromeH) / 2, cap);
-    if (!Number.isFinite(width)) width = 220;
-    width = Math.max(100, width);
+    const frame = getComputedStyle(screenEl);
+    const fitW = (slotEl.clientWidth - boxExtra(frame, true)) / COLS;
+    const fitH = (slotEl.clientHeight - boxExtra(frame, false)) / ROWS;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const cell = Math.max(8, Math.floor((width * dpr) / COLS));
+    const cell = Math.max(8, Math.floor(Math.min(fitW, fitH) * dpr));
     const cssW = (cell * COLS) / dpr;
-    const cssH = (cssW * ROWS) / COLS;
+    const cssH = (cell * ROWS) / dpr;
     const key = `${cell}|${dpr}|${nextCanvas.clientWidth}`;
     if (resizeKey === key) return;
     resizeKey = key;
@@ -483,18 +448,19 @@ window.addEventListener('resize', onResize);
 window.addEventListener('load', onResize);
 window.addEventListener('orientationchange', () => setTimeout(onResize, 80));
 if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(onResize);
 
 if (window.ResizeObserver) {
     const observer = new ResizeObserver(onResize);
     [
         '.topbar',
+        '.layout',
+        '.bezel',
         '.stat-score',
         '.next-wrap',
         '.speed-panel',
         '.action-buttons',
         '#optionsPanel',
-        '#controlsHint',
-        '.credit',
         '#touchControls'
     ].forEach((selector) => {
         const el = document.querySelector(selector);
@@ -516,8 +482,7 @@ if (pauseButton) {
     });
 }
 
-const boardShell = document.querySelector('.canvas-wrapper');
-if (boardShell) boardShell.addEventListener('click', handleBoardAction);
+if (screenEl) screenEl.addEventListener('click', handleBoardAction);
 
 if (soundButton) {
     soundButton.addEventListener('click', () => {

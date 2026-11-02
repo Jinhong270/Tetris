@@ -1,83 +1,17 @@
-const LOADERS = {
-  "af-ZA": () => import("../locales/af-ZA.js"),
-  "ar-EG": () => import("../locales/ar-EG.js"),
-  "ar-SA": () => import("../locales/ar-SA.js"),
-  "az-AZ": () => import("../locales/az-AZ.js"),
-  "bg-BG": () => import("../locales/bg-BG.js"),
-  "bn-BD": () => import("../locales/bn-BD.js"),
-  "bs-BA": () => import("../locales/bs-BA.js"),
-  "ca-ES": () => import("../locales/ca-ES.js"),
-  "cs-CZ": () => import("../locales/cs-CZ.js"),
-  "da-DK": () => import("../locales/da-DK.js"),
-  "de-AT": () => import("../locales/de-AT.js"),
-  "de-CH": () => import("../locales/de-CH.js"),
-  "de-DE": () => import("../locales/de-DE.js"),
-  "el-GR": () => import("../locales/el-GR.js"),
-  "en-AU": () => import("../locales/en-AU.js"),
-  "en-CA": () => import("../locales/en-CA.js"),
-  "en-GB": () => import("../locales/en-GB.js"),
-  "en-US": () => import("../locales/en-US.js"),
-  "es-AR": () => import("../locales/es-AR.js"),
-  "es-ES": () => import("../locales/es-ES.js"),
-  "es-MX": () => import("../locales/es-MX.js"),
-  "et-EE": () => import("../locales/et-EE.js"),
-  "eu-ES": () => import("../locales/eu-ES.js"),
-  "fa-IR": () => import("../locales/fa-IR.js"),
-  "fi-FI": () => import("../locales/fi-FI.js"),
-  "fil-PH": () => import("../locales/fil-PH.js"),
-  "fr-BE": () => import("../locales/fr-BE.js"),
-  "fr-CA": () => import("../locales/fr-CA.js"),
-  "fr-CH": () => import("../locales/fr-CH.js"),
-  "fr-FR": () => import("../locales/fr-FR.js"),
-  "ga-IE": () => import("../locales/ga-IE.js"),
-  "gl-ES": () => import("../locales/gl-ES.js"),
-  "ha-NG": () => import("../locales/ha-NG.js"),
-  "he-IL": () => import("../locales/he-IL.js"),
-  "hi-IN": () => import("../locales/hi-IN.js"),
-  "hr-HR": () => import("../locales/hr-HR.js"),
-  "hu-HU": () => import("../locales/hu-HU.js"),
-  "id-ID": () => import("../locales/id-ID.js"),
-  "is-IS": () => import("../locales/is-IS.js"),
-  "it-IT": () => import("../locales/it-IT.js"),
-  "ja-JP": () => import("../locales/ja-JP.js"),
-  "kk-KZ": () => import("../locales/kk-KZ.js"),
-  "ko-KR": () => import("../locales/ko-KR.js"),
-  "lt-LT": () => import("../locales/lt-LT.js"),
-  "lv-LV": () => import("../locales/lv-LV.js"),
-  "mk-MK": () => import("../locales/mk-MK.js"),
-  "mr-IN": () => import("../locales/mr-IN.js"),
-  "ms-MY": () => import("../locales/ms-MY.js"),
-  "nb-NO": () => import("../locales/nb-NO.js"),
-  "ne-NP": () => import("../locales/ne-NP.js"),
-  "nl-BE": () => import("../locales/nl-BE.js"),
-  "nl-NL": () => import("../locales/nl-NL.js"),
-  "nn-NO": () => import("../locales/nn-NO.js"),
-  "pl-PL": () => import("../locales/pl-PL.js"),
-  "pt-BR": () => import("../locales/pt-BR.js"),
-  "pt-PT": () => import("../locales/pt-PT.js"),
-  "ro-RO": () => import("../locales/ro-RO.js"),
-  "ru-RU": () => import("../locales/ru-RU.js"),
-  "sk-SK": () => import("../locales/sk-SK.js"),
-  "sl-SI": () => import("../locales/sl-SI.js"),
-  "sq-AL": () => import("../locales/sq-AL.js"),
-  "sr-Cyrl": () => import("../locales/sr-Cyrl.js"),
-  "sr-Latn": () => import("../locales/sr-Latn.js"),
-  "sv-SE": () => import("../locales/sv-SE.js"),
-  "sw-KE": () => import("../locales/sw-KE.js"),
-  "ta-IN": () => import("../locales/ta-IN.js"),
-  "te-IN": () => import("../locales/te-IN.js"),
-  "th-TH": () => import("../locales/th-TH.js"),
-  "tr-TR": () => import("../locales/tr-TR.js"),
-  "uk-UA": () => import("../locales/uk-UA.js"),
-  "ur-PK": () => import("../locales/ur-PK.js"),
-  "uz-Latn": () => import("../locales/uz-Latn.js"),
-  "vi-VN": () => import("../locales/vi-VN.js"),
-  "zh-CN": () => import("../locales/zh-CN.js"),
-  "zh-HK": () => import("../locales/zh-HK.js"),
-  "zh-MO": () => import("../locales/zh-MO.js"),
-  "zh-TW": () => import("../locales/zh-TW.js"),
-  "zu-ZA": () => import("../locales/zu-ZA.js")
-};
+const LOCALE_IDS = [
+  "af-ZA", "ar-AE", "ar-DZ", "ar-EG", "ar-IQ", "ar-MA", "ar-SA", "az-AZ", "bg-BG", "bn-BD",
+  "bn-IN", "bs-BA", "ca-ES", "cs-CZ", "da-DK", "de-AT", "de-CH", "de-DE", "de-LI", "el-GR",
+  "en-AU", "en-CA", "en-GB", "en-IE", "en-IN", "en-NG", "en-NZ", "en-PH", "en-SG", "en-US",
+  "en-ZA", "es-AR", "es-CL", "es-CO", "es-ES", "es-MX", "es-PE", "es-UY", "es-VE", "et-EE",
+  "eu-ES", "fa-IR", "fi-FI", "fil-PH", "fr-BE", "fr-CA", "fr-CH", "fr-FR", "fr-LU", "ga-IE",
+  "gl-ES", "ha-NG", "he-IL", "hi-IN", "hr-HR", "hu-HU", "id-ID", "is-IS", "it-IT", "ja-JP",
+  "kk-KZ", "ko-KR", "lt-LT", "lv-LV", "mk-MK", "mr-IN", "ms-MY", "nb-NO", "ne-NP", "nl-BE",
+  "nl-NL", "nn-NO", "pl-PL", "pt-AO", "pt-BR", "pt-PT", "ro-RO", "ru-RU", "sk-SK", "sl-SI",
+  "sq-AL", "sr-Cyrl", "sr-Latn", "sr-ME", "sv-SE", "sw-KE", "ta-IN", "te-IN", "th-TH", "tr-TR",
+  "uk-UA", "ur-PK", "uz-Latn", "vi-VN", "zh-CN", "zh-HK", "zh-MO", "zh-SG", "zh-TW", "zu-ZA"
+];
+
+const LOADERS = Object.fromEntries(LOCALE_IDS.map((id) => [id, () => import(`../locales/${id}.js`)]));
 
 const LANG_DEFAULT = {
   en: "en-US",
@@ -148,21 +82,10 @@ const LANG_DEFAULT = {
 };
 
 const REGION_MAP = {
-  "en-NZ": "en-AU",
-  "en-IE": "en-GB",
-  "en-ZA": "en-GB",
-  "en-IN": "en-GB",
-  "en-SG": "en-GB",
   "en-HK": "en-GB",
-  "en-PH": "en-US",
-  "en-NG": "en-GB",
   "en-KE": "en-GB",
   "es-419": "es-MX",
   "es-US": "es-MX",
-  "es-CO": "es-MX",
-  "es-CL": "es-MX",
-  "es-PE": "es-MX",
-  "es-VE": "es-MX",
   "es-EC": "es-MX",
   "es-GT": "es-MX",
   "es-CR": "es-MX",
@@ -175,11 +98,7 @@ const REGION_MAP = {
   "es-NI": "es-MX",
   "es-SV": "es-MX",
   "es-CU": "es-MX",
-  "es-UY": "es-AR",
-  "de-LI": "de-DE",
   "de-LU": "de-DE",
-  "fr-LU": "fr-FR",
-  "pt-AO": "pt-PT",
   "pt-MZ": "pt-PT",
   "pt-CV": "pt-PT",
   "pt-GW": "pt-PT",
@@ -188,7 +107,6 @@ const REGION_MAP = {
   "pt-MO": "pt-PT",
   "nl-SR": "nl-NL",
   "nl-AW": "nl-NL",
-  "ar-AE": "ar-SA",
   "ar-QA": "ar-SA",
   "ar-KW": "ar-SA",
   "ar-BH": "ar-SA",
@@ -196,19 +114,14 @@ const REGION_MAP = {
   "ar-JO": "ar-SA",
   "ar-LB": "ar-SA",
   "ar-SY": "ar-SA",
-  "ar-IQ": "ar-SA",
   "ar-YE": "ar-SA",
-  "ar-MA": "ar-SA",
-  "ar-DZ": "ar-SA",
   "ar-TN": "ar-SA",
   "ar-LY": "ar-SA",
   "ar-SD": "ar-SA",
-  "bn-IN": "bn-BD",
   "ta-LK": "ta-IN",
   "ta-SG": "ta-IN",
   "ms-BN": "ms-MY",
   "ms-SG": "ms-MY",
-  "sr-ME": "sr-Latn",
   "sr-BA": "sr-Cyrl",
   "sr-RS": "sr-Cyrl",
   "uz-UZ": "uz-Latn",
@@ -247,16 +160,16 @@ function matchChinese(parts) {
   if (parts.region === "HK") return pickLocale("zh-HK");
   if (parts.region === "MO") return pickLocale("zh-MO");
   if (parts.region === "TW") return pickLocale("zh-TW");
-  if (parts.region === "CN" || parts.region === "SG" || parts.region === "MY") return pickLocale("zh-CN");
+  if (parts.region === "CN" || parts.region === "MY") return pickLocale("zh-CN");
   if (parts.script === "Hans") return pickLocale("zh-CN");
   if (parts.script === "Hant") return pickLocale("zh-TW");
   return pickLocale("zh-CN");
 }
 
 function matchSerbian(parts) {
-  if (parts.script === "Latn") return pickLocale("sr-Latn");
+  if (parts.script === "Latn") return pickLocale(parts.region === "ME" ? "sr-ME" : "sr-Latn");
   if (parts.script === "Cyrl") return pickLocale("sr-Cyrl");
-  if (parts.region === "ME") return pickLocale("sr-Latn");
+  if (parts.region === "ME") return pickLocale("sr-ME");
   return pickLocale("sr-Cyrl");
 }
 
@@ -268,6 +181,7 @@ function matchTag(tag) {
   if (parts.region) exact += "-" + parts.region;
   let direct = pickLocale(exact);
   if (direct) return direct;
+  if (parts.lang === "sr") return matchSerbian(parts);
   if (parts.region) {
     direct = pickLocale(parts.lang + "-" + parts.region);
     if (direct) return direct;
@@ -277,7 +191,6 @@ function matchTag(tag) {
     if (parts.region === "MO") return pickLocale("zh-MO");
     return pickLocale("zh-HK");
   }
-  if (parts.lang === "sr") return matchSerbian(parts);
   if (parts.lang === "nn") return pickLocale("nn-NO") || pickLocale("nb-NO");
   if (parts.lang === "no" || parts.lang === "nb") return pickLocale("nb-NO");
   if (parts.lang === "fil" || parts.lang === "tl") return pickLocale("fil-PH");
